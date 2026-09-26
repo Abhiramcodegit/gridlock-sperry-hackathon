@@ -8,21 +8,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "maplibre-gl": "^4.7.0",
+    "maplibre-gl": "^6.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
-    "vite": "^5.4.14"
+    "vite": "^5.4.21"
   },
   "overrides": {
     "esbuild": ">=0.25.0"
   },
   "_securityNotes": {
-    "CVE-2026-39364": "Patched by vite>=5.4.14 — file-read bypass in dev server fs.deny, CVSS 7.5. Dev-only dependency; does not ship to production.",
+    "GHSA-jrc7-96c5-q579": "CRITICAL XSS in maplibre-gl <=6.4.0 DOM.sanitize(). PRODUCTION dep. Fixed by upgrade to 6.4.1.",
     "GHSA-67mh-4wv8-2f99": "esbuild override >=0.25.0 resolves moderate dev-server CORS issue. Dev-only.",
+    "GHSA-4w7w-66w2-5vf9": "Path-traversal in Vite optimised deps .map handling. Dev-only. Only triggered when --host is set. Our vite.config.js does NOT set --host. Acceptable dev-only risk for hackathon. Pin to ^5.4.21 (latest v5 stable).",
     "audit-date": "2026-09-26",
-    "production-impact": "None. All three flagged packages are devDependencies and are not bundled into the production build output."
+    "note": "Re-run npm audit at every commit. Advisory DB changes daily."
   }
 }
