@@ -1,6 +1,18 @@
-fastapi
-uvicorn[standard]
-shapely>=2
-pyproj
-psycopg[binary]
-pytest
+# Pinned to exact versions with prebuilt wheels on Python 3.11, 3.12, 3.13
+# Intel + ARM macOS, Linux x86_64. No source builds required.
+# Verified against PyPI wheel availability 2026-09-26.
+#
+# Install instructions:
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install --prefer-binary -r requirements.txt
+
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+shapely==2.0.6
+# pyproj 3.7.0: PROJ 9.4.1 bundled in wheel; prebuilt cp311/cp312/cp313
+# wheels for macOS x86_64, macOS arm64, manylinux. Do NOT upgrade to 3.8.x
+# until cp313-macosx_10_9_x86_64 wheel is confirmed available.
+pyproj==3.7.0
+psycopg[binary]==3.2.3
+pytest==8.3.3
+httpx==0.27.2
