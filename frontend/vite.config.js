@@ -12,5 +12,12 @@ export default defineConfig({
   server: {
     host: false,        // localhost only — explicitly disables network exposure
     port: 5173
-  }
+  },
+  // maplibre-gl v6's ESM bundle uses syntax (e.g. destructuring in
+  // certain positions) that esbuild cannot down-level to the old default
+  // target (es2020). Raise the target so both dev (esbuild deps optimizer)
+  // and the production build transform maplibre v6 correctly.
+  esbuild: { target: 'es2022' },
+  optimizeDeps: { esbuildOptions: { target: 'es2022' } },
+  build: { target: 'es2022' }
 })

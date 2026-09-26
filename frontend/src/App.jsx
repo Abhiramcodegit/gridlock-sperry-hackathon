@@ -1,18 +1,12 @@
 // MapLibre GL JS v6 migration notes:
 // - v6 is ESM-only; default export removed. Use namespace import.
-// - Vite bundler requires explicit setWorkerUrl() for tile rendering.
+// - The worker is bundled automatically by Vite in v6 — no manual
+//   setWorkerUrl() wiring is needed (the old CSP worker file was removed).
 // - Map, LngLatBounds, etc. are unchanged in call signature.
 // - See: https://maplibre.org/maplibre-gl-js/docs/guides/v5-to-v6-migration-guide/
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
-import MaplibreWorker from 'maplibre-gl/dist/maplibre-gl-csp-worker?worker'
 import 'maplibre-gl/dist/maplibre-gl.css'
-
-// Required for Vite: wire up the web worker so tiles actually render
-maplibregl.setWorkerUrl(URL.createObjectURL(
-  new Blob(['importScripts("' + new URL('maplibre-gl/dist/maplibre-gl-csp-worker.js', import.meta.url).href + '")']
-  , { type: 'application/javascript' })
-))
 
 const COLORS = { DESC: '#1f6feb', GPC: '#d97706' }
 
