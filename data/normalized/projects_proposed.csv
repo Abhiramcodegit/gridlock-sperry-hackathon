@@ -1,0 +1,7 @@
+id,utility,name,project_type,project_status,voltage_kv,description,geometry,geometry_type,geometry_source,geometry_method,geometry_confidence,construction_start,construction_end,in_service_date,date_basis,source_url,source_title,source_date,source_page,source_excerpt,review_status,ceii_checked,last_verified
+H-DESC-JASPER,DESC,Jasper (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,
+H-DESC-OKATIE,DESC,Okatie (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,
+H-DESC-BLUFFTON,DESC,Bluffton (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,
+H-DESC-URQUHART,DESC,Urquhart (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,
+H-GPC-MCINTOSH,GPC,Plant McIntosh expansion (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,
+H-GPC-THOMSON-VOGTLE,GPC,Thomson-Vogtle line (hypothesis),,unverified,,,,,,,unresolved,,,,unknown,,,,,,proposed,false,

@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+shapely>=2
+pyproj
+psycopg[binary]
+pytest
