@@ -26,25 +26,42 @@ Kiro confirmed `npm run dev` is clean after the maplibre-gl v6 migration. Produc
 
 ## Production Build Verification
 
-> **STATUS: PENDING** — Kiro to run `npm run build` and update this table.
+> **STATUS: PASS** — Verified by Kiro on 2026-09-26 (macOS Intel, Node 22.23.2, Vite 5.4.21).
 
 | Check | Status | Confirmed by | Date |
 |---|---|---|---|
-| `npm run build` exits code 0 | ⏳ pending | — | — |
-| `dist/` directory created | ⏳ pending | — | — |
-| No esbuild destructuring errors | ⏳ pending | — | — |
-| No worker/transform errors in build output | ⏳ pending | — | — |
-| Bundle target is es2022 (not es2020) | ⏳ pending | — | — |
-| maplibre-gl included in bundle at correct version | ⏳ pending | — | — |
+| `npm run build` exits code 0 | ✅ | Kiro | 2026-09-26 |
+| `dist/` directory created | ✅ | Kiro | 2026-09-26 |
+| No esbuild destructuring errors | ✅ | Kiro | 2026-09-26 |
+| No worker/transform errors in build output | ✅ | Kiro | 2026-09-26 |
+| Bundle target is es2022 (not es2020) | ✅ | Kiro | 2026-09-26 |
+| maplibre-gl included in bundle at correct version | ✅ (6.11.2) | Kiro | 2026-09-26 |
 
-Command to run:
-```bash
-cd frontend
-npm run build 2>&1 | tee build-output.txt
-echo "Exit: $?"
+**Exit code:** `0`
+
+**Build output (verbatim):**
+```
+> build
+> vite build
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.34 kB │ gzip:   0.25 kB
+dist/assets/index-DeUcOmFd.css     83.75 kB │ gzip:  10.77 kB
+dist/assets/index-D6XzBjoj.js   1,162.50 kB │ gzip: 324.33 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking
+- Adjust chunk size limit via build.chunkSizeWarningLimit.
+✓ built in 9.42s
 ```
 
-Post the exit code and last 20 lines of output in this file when done.
+**Note on the chunk-size warning:** informational only, not an error. The ~1.16 MB
+(324 KB gzipped) bundle is dominated by maplibre-gl, which is expected for a map
+library. Acceptable for the hackathon demo. Optional future optimization:
+code-split maplibre via dynamic import or `manualChunks`.
 
 ---
 
