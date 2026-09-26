@@ -44,10 +44,20 @@ This file records every significant architectural, tooling, and process decision
 
 ---
 
-## ADR-005 — No package-lock.json (current — under review)
+## ADR-005 — Commit package-lock.json for reproducible installs
 
 **Date:** 2026-09-26  
-**Status:** Under review  
-**Context:** Repo was initialized without committing a lockfile. Kiro recommends committing `package-lock.json` for reproducible installs and comparable audit results.  
-**Decision:** Pending — Kiro to commit lockfile and update this entry.  
-**Consequences:** Until resolved, `npm install` on a clean machine may resolve different patch versions and `npm audit` results may diverge between machines.
+**Status:** Accepted — CLOSED (commit bbc7888)  
+**Context:** Repo was initialized without committing a lockfile. Without it, `npm install` resolves different patch versions on different machines and `npm audit` results can diverge.  
+**Decision:** Committed `package-lock.json` (lockfileVersion 3) in commit bbc7888. All future installs must use `npm ci` to guarantee exact locked versions.  
+**Consequences:** maplibre-gl pinned to 6.11.2, vite pinned to 5.4.21. Audit baselines are now reproducible and comparable across machines.
+
+---
+
+## ADR-006 — Accept maplibre bundle size warning (~1.16 MB / 324 KB gzip)
+
+**Date:** 2026-09-26  
+**Status:** Accepted  
+**Context:** Vite production build emits a chunk-size warning because maplibre-gl dominates the bundle at ~1.16 MB (324 KB gzipped). This is not an error.  
+**Decision:** Accept for hackathon demo. The warning is informational. maplibre is a map rendering library and this size is expected.  
+**Consequences:** None for demo. Optional Phase 4 optimization: code-split maplibre via `build.rollupOptions.output.manualChunks`. Do not attempt until Phase 3 is stable.

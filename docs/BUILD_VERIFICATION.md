@@ -1,14 +1,18 @@
 # GridLock — Build Verification Log
 
-Last updated: 2026-09-26  
-Branch: `research/source-validation`  
-Baseline commit: `2d95fc0` (Kiro — fix(frontend): repair maplibre-gl v6 migration build)
+Last updated: 2026-09-26 (synced to commit bbc7888)  
+Environment: Node 22.23.2, npm, macOS Intel  
+Vite: 5.4.21 | maplibre-gl: 6.11.2
 
 ---
 
 ## Why This File Exists
 
-Kiro confirmed `npm run dev` is clean after the maplibre-gl v6 migration. Production build (`npm run build`) has not yet been confirmed. This file tracks both verification steps and must be updated every time the build target, bundler config, or major dependencies change.
+Tracks dev server and production build verification. Must be updated every time the build target, bundler config, or major dependencies change.
+
+---
+
+## ✅ Phase 0 COMPLETE — All build checks passed
 
 ---
 
@@ -26,7 +30,7 @@ Kiro confirmed `npm run dev` is clean after the maplibre-gl v6 migration. Produc
 
 ## Production Build Verification
 
-> **STATUS: PASS** — Verified by Kiro on 2026-09-26 (macOS Intel, Node 22.23.2, Vite 5.4.21).
+**STATUS: ✅ PASS** — Verified by Kiro on 2026-09-26 (macOS Intel, Node 22.23.2, Vite 5.4.21, commit bbc7888)
 
 | Check | Status | Confirmed by | Date |
 |---|---|---|---|
@@ -35,11 +39,11 @@ Kiro confirmed `npm run dev` is clean after the maplibre-gl v6 migration. Produc
 | No esbuild destructuring errors | ✅ | Kiro | 2026-09-26 |
 | No worker/transform errors in build output | ✅ | Kiro | 2026-09-26 |
 | Bundle target is es2022 (not es2020) | ✅ | Kiro | 2026-09-26 |
-| maplibre-gl included in bundle at correct version | ✅ (6.11.2) | Kiro | 2026-09-26 |
+| maplibre-gl 6.11.2 included in bundle | ✅ | Kiro | 2026-09-26 |
 
 **Exit code:** `0`
 
-**Build output (verbatim):**
+**Build output (verbatim, commit bbc7888):**
 ```
 > build
 > vite build
@@ -58,32 +62,10 @@ dist/assets/index-D6XzBjoj.js   1,162.50 kB │ gzip: 324.33 kB
 ✓ built in 9.42s
 ```
 
-**Note on the chunk-size warning:** informational only, not an error. The ~1.16 MB
-(324 KB gzipped) bundle is dominated by maplibre-gl, which is expected for a map
-library. Acceptable for the hackathon demo. Optional future optimization:
-code-split maplibre via dynamic import or `manualChunks`.
+### Chunk-size warning
+Informational only — not an error. The ~1.16 MB (324 KB gzipped) bundle is dominated by maplibre-gl, which is expected for a map library. Acceptable for hackathon demo.
 
----
-
-## Build Config Reference (commit 2d95fc0)
-
-```js
-// vite.config.js — current state
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: false,   // localhost only
-    port: 5173
-  },
-  esbuild: { target: 'es2022' },
-  optimizeDeps: { esbuildOptions: { target: 'es2022' } },
-  build: { target: 'es2022' }
-})
-```
-
-**Why es2022:** maplibre-gl v6's ESM bundle uses destructuring syntax patterns that esbuild cannot down-level to the previous default target (es2020). Raising to es2022 eliminates ~40 esbuild transform errors. See commit `2d95fc0` message for full details.
-
-**Browser support:** es2022 is supported by all Chrome/Edge 94+, Firefox 93+, Safari 15+. Safe for hackathon demo context. Re-evaluate for broader production deployment.
+**Optional Phase 4 optimization:** code-split maplibre via `build.rollupOptions.output.manualChunks` or dynamic `import()`. Do not do this until Phase 3 is complete and the demo path is stable.
 
 ---
 
@@ -91,8 +73,34 @@ export default defineConfig({
 
 | Item | Status |
 |---|---|
-| `package-lock.json` committed | ❌ Not yet committed |
-| Installs reproducible across machines | ❌ Not until lockfile committed |
-| Audit baselines comparable | ❌ Not until lockfile committed |
+| `package-lock.json` committed | ✅ lockfileVersion 3, commit bbc7888 |
+| maplibre-gl version pinned | ✅ 6.11.2 |
+| vite version pinned | ✅ 5.4.21 |
+| Installs reproducible across machines | ✅ Use `npm ci` (not `npm install`) |
+| Audit baselines comparable | ✅ All machines install identical tree |
 
-Action: Kiro to run `npm install && git add package-lock.json && git commit`.
+**Always use `npm ci` from now on** (not `npm install`) so the exact locked versions are installed:
+```bash
+cd frontend
+npm ci
+npm audit
+# Expected: 0 critical, 1 risk-accepted dev-only vite HIGH
+```
+
+---
+
+## Build Config Reference (current)
+
+```js
+// vite.config.js
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: false,   // localhost only — ADR-003
+    port: 5173
+  },
+  esbuild: { target: 'es2022' },           // ADR-002
+  optimizeDeps: { esbuildOptions: { target: 'es2022' } },
+  build: { target: 'es2022' }
+})
+```

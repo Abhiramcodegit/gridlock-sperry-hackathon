@@ -1,8 +1,8 @@
 # GridLock — Phase Status (Living Document)
 
-Last updated: 2026-09-26 03:40 EDT  
+Last updated: 2026-09-26 03:46 EDT  
 Current branch: `research/source-validation`  
-Head commit: `2d95fc0` (Kiro) rebased on top of `256dee5` (docs)
+Head commit: `bbc7888` (Kiro — prod build PASS + package-lock.json)
 
 ---
 
@@ -10,7 +10,7 @@ Head commit: `2d95fc0` (Kiro) rebased on top of `256dee5` (docs)
 
 | Phase | Name | Status | Gate condition |
 |---|---|---|---|
-| 0 | Security baseline + frontend build | ✅ Complete (pending prod build confirm) | 0 critical CVEs, map renders |
+| 0 | Security baseline + frontend build | ✅ **COMPLETE** | 0 critical CVEs, prod build passes, lockfile committed |
 | 1 | DESC data acquisition + provenance | 🔄 In progress | Checkpoint 1 review |
 | 2 | PostGIS overlap engine | ⏳ Not started | Phase 1 approved |
 | 3 | Evidence drawer + UI | ⏳ Not started | Phase 2 approved |
@@ -18,22 +18,20 @@ Head commit: `2d95fc0` (Kiro) rebased on top of `256dee5` (docs)
 
 ---
 
-## Phase 0 — Security Baseline + Frontend Build
+## Phase 0 — Security Baseline + Frontend Build ✅ COMPLETE
 
-### Completed ✅
 - [x] maplibre-gl upgraded 4.7.1 → ^6.4.1 (XSS GHSA-jrc7-96c5-q579 resolved)
 - [x] esbuild CORS advisory resolved via `overrides` in `package.json`
-- [x] Vite path-traversal advisory (GHSA-4w7w-66w2-5vf9) risk-accepted with localhost-only config
+- [x] Vite path-traversal advisory (GHSA-4w7w-66w2-5vf9) risk-accepted, localhost-only config
 - [x] `vite.config.js` `server.host: false` documented
 - [x] Worker wiring bug fixed — removed broken `?worker` import and `setWorkerUrl()` blob
 - [x] `esbuild`/`optimizeDeps`/`build` targets raised to `es2022`
-- [x] Dev server verified clean (Kiro, 2026-09-26)
-- [x] All docs committed — README, project-docs/, docs/
+- [x] Dev server verified clean (Kiro, 2026-09-26, commit 2d95fc0)
+- [x] **Production build verified — exit code 0, dist/ emitted, no errors (Kiro, 2026-09-26, commit bbc7888)**
+- [x] **`package-lock.json` committed — lockfileVersion 3, maplibre 6.11.2, vite 5.4.21 (commit bbc7888)**
+- [x] All docs committed — README, project-docs/, docs/, DECISION_LOG, BUILD_VERIFICATION
 
-### Pending ⏳
-- [ ] **Production build confirm** — Kiro to run `npm run build`, post result in `docs/BUILD_VERIFICATION.md`
-- [ ] **Commit `package-lock.json`** — Kiro to push lockfile for reproducible installs
-- [ ] Audit baseline re-verified against committed lockfile
+**No open items in Phase 0.**
 
 ---
 
@@ -44,26 +42,30 @@ Head commit: `2d95fc0` (Kiro) rebased on top of `256dee5` (docs)
 - [ ] Provenance file created for each source (`docs/DATA_LIMITATIONS.md`)
 - [ ] Geometry extracted and tagged as confirmed/inferred/approximate
 - [ ] Human review queue populated
+- [ ] Georgia Power source resolved (confirm public access or reject)
 
 ### Checkpoint 1 Gate
-Before Phase 2 starts, the following must be verified:
-- All data files have confirmed source URLs and access dates
-- No CEII or restricted material present
-- Every geometry has a provenance tag
-- At least one cross-utility candidate pair exists in the reviewed dataset
+Before Phase 2 starts, ALL of the following must be verified:
+- [ ] All data files have confirmed source URLs and access dates
+- [ ] No CEII or restricted material present
+- [ ] Every geometry has a provenance tag (confirmed/inferred/approximate)
+- [ ] `approved_projects.csv` reviewed and approved (currently empty — intentional)
+- [ ] At least one cross-utility candidate pair exists in the reviewed dataset
+- [ ] Dependency pins signed off
+- [ ] Vite dev-only security assessment signed off
 
-> **Waiting on Kiro:** Point at the specific data file paths (e.g. `data/desc/`, `data/projects/`) when ready for Checkpoint 1 review.
+> **Waiting on Kiro:** Share the specific data file paths (e.g. `data/desc/`, `data/projects/`) to trigger Checkpoint 1 review.
 
 ---
 
 ## Phase 2 — PostGIS Overlap Engine
 
 ### Planned
-- ST_DWithin filter at 40 km threshold
-- ST_Distance minimum geometry distance calculation
+- `ST_DWithin` filter at 40 km threshold
+- `ST_Distance` minimum geometry distance (not centroid-to-centroid)
 - Temporal interval overlap logic
-- Coordination tier assignment (deterministic)
-- No model makes the final overlap decision — PostGIS only
+- Deterministic coordination tier assignment
+- **No model makes the final overlap decision — PostGIS only (ADR-004)**
 
 ---
 
@@ -84,6 +86,7 @@ Before Phase 2 starts, the following must be verified:
 - Agent-assisted "Import New Utility" mode
 - All data preloaded and validated
 - Automated smoke tests
+- Optional: code-split maplibre bundle (ADR-006)
 
 ---
 
@@ -91,6 +94,7 @@ Before Phase 2 starts, the following must be verified:
 
 | Blocker | Owner | Impact |
 |---|---|---|
-| `npm run build` not yet confirmed | Kiro | Phase 0 not fully closed |
-| `package-lock.json` not committed | Kiro | Audit drift risk |
 | DESC data paths not shared | Kiro | Checkpoint 1 cannot start |
+| Georgia Power source unresolved | Kiro | 0 GPC rows in approved dataset |
+
+**Phase 0 blockers: none.**
