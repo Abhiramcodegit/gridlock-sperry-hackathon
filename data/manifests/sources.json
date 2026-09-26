@@ -1,6 +1,54 @@
 [
-  {"id":"SRC-SCRTP-HOME","title":"South Carolina Regional Transmission Planning","url":"https://www.scrtp.com/","publisher":"SCRTP (DESC and Santee Cooper)","relevance":"Hosts Planned Facilities and $2M & Above Project listings","status":"located_not_extracted","restriction":"public_page; each linked file must be CEII-checked"},
-  {"id":"SRC-SERTP-HOME","title":"Southeastern Regional Transmission Planning","url":"https://www.southeasternrtp.com/","publisher":"SERTP","relevance":"2026 Preliminary 10 Year Transmission Expansion Plans posted","status":"located_not_extracted","restriction":"public_page; models may require registered access"},
-  {"id":"SRC-GPC-IRP","title":"Georgia Power Integrated Resource Plan","url":"https://www.georgiapower.com/about/company/filings/irp.html","publisher":"Georgia Power","relevance":"2025 IRP includes the 10-year transmission plan","status":"located_not_extracted","restriction":"public_page; transmission appendix may be partly redacted"},
-  {"id":"SRC-GPC-TX","title":"Transmission Expansions & Upgrades","url":"https://www.georgiapower.com/about/grid-reliability/grid-improvements/grid-projects/transmission-projects.html","publisher":"Georgia Power","relevance":"Public project pages","status":"extracted","restriction":"public_page; no login required (verified 2026-09-26)","access_verified":"2026-09-26","access_verified_by":"Kiro (direct web fetch)","projects_extracted":9}
+  {
+    "id": "SRC-SCRTP-HOME",
+    "title": "South Carolina Regional Transmission Planning",
+    "url": "https://www.scrtp.com/",
+    "publisher": "SCRTP (DESC and Santee Cooper)",
+    "relevance": "Hosts public planning presentations and facility listings",
+    "status": "located",
+    "restriction": "public_page; each linked file must be CEII-checked"
+  },
+  {
+    "id": "SRC-SCRTP-2025-03-05",
+    "title": "SCRTP Stakeholder Meeting Presentation — March 5, 2025",
+    "url": "https://www.scrtp.com/assets/pdfs/meeting-archives/scrtp-meeting-2025-03-05-presentation.pdf",
+    "publisher": "SCRTP",
+    "relevance": "Current DESC Transmission Expansion Plans, pages/slides 30–48",
+    "status": "extracted",
+    "restriction": "public_pdf; no login; no CEII marking observed",
+    "access_verified": "2026-09-26",
+    "access_verified_by": "Perplexity (direct PDF retrieval and page-level review)",
+    "projects_extracted": 19
+  },
+  {
+    "id": "SRC-SERTP-HOME",
+    "title": "Southeastern Regional Transmission Planning",
+    "url": "https://www.southeasternrtp.com/",
+    "publisher": "SERTP",
+    "relevance": "2026 Preliminary 10 Year Transmission Expansion Plans posted",
+    "status": "located_not_extracted",
+    "restriction": "public_page; models may require registered access"
+  },
+  {
+    "id": "SRC-GPC-IRP",
+    "title": "Georgia Power Integrated Resource Plan",
+    "url": "https://www.georgiapower.com/about/company/filings/irp.html",
+    "publisher": "Georgia Power",
+    "relevance": "2025 IRP includes the 10-year transmission plan",
+    "status": "located_not_extracted",
+    "restriction": "public_page; transmission appendix may be partly redacted"
+  },
+  {
+    "id": "SRC-GPC-TX",
+    "title": "Transmission Expansion & Upgrades",
+    "url": "https://www.georgiapower.com/about/grid-reliability/grid-improvements/grid-projects/transmission-projects.html",
+    "publisher": "Georgia Power",
+    "relevance": "Public project listing",
+    "status": "extracted",
+    "restriction": "public_page; no login required",
+    "access_verified": "2026-09-26",
+    "access_verified_by": "Kiro and Perplexity (independent direct fetches)",
+    "projects_extracted": 9,
+    "live_page_note": "Live page also lists Tomochichi - Towaliga River 230 kV; pending consistent raw-capture provenance before normalization."
+  }
 ]

@@ -1,49 +1,36 @@
 # GridLock — Data Limitations
 
-Last updated: 2026-09-26 (Phase 1 update)  
-This document is a living record of what the dataset does and does not contain.
+Last updated: 2026-09-26 (Checkpoint 1 source correction)
 
----
+## What the proposed dataset contains
 
-## What the Dataset Contains (After Phase 1A)
+- 19 unique DESC projects from the **Current DESC Transmission Expansion Plans** section of the SCRTP March 5, 2025 presentation.
+- 9 Georgia Power projects from the public Transmission Expansion & Upgrades page.
+- Record-level source URL, source title/date, source page or web marker, excerpt, review state, CEII check flag, and last-verification date.
+- 6 explicitly labeled hypothesis rows retained separately from source-backed proposals.
 
-- 18 DESC transmission projects extracted from SCRTP March 2025 public presentation.
-- Project names, voltages, in-service dates, and text descriptions only.
-- No geometries. All `geometry_status` values are `UNVERIFIED`.
-- No coordinates, no route maps, no GIS data.
-- Source: one verified public document (SRC-001). IRP (SRC-002) used for corroboration only.
+## What it does not contain
 
----
+- Approved production records: every source-backed row remains `review_status=proposed` pending human approval.
+- Project geometries, routes, or coordinates: all geometry fields are blank and `geometry_confidence=unresolved`.
+- Construction windows: the reviewed sources do not provide both construction start and end dates.
+- Per-project Georgia Power in-service dates: the listing provides project names, counties/regions, and types, but not record-specific dates.
+- Verified distance results: without geometry, `ST_DWithin` and `ST_Distance` cannot establish a cross-utility pair.
 
-## What the Dataset Does NOT Contain
+## Source correction
 
-- **Georgia Power projects:** Pending source verification. Zero Georgia Power rows in the approved dataset until SRC-003 verification completes and receives human approval.
-- **Geometries / coordinates:** No project has a confirmed geometry. The engine will not compute distances until at least two projects have CONFIRMED or INFERRED geometries with cited sources.
-- **Cost estimates:** Not present in source documents reviewed so far.
-- **Private or CEII data:** None included. Sources reviewed contain no CEII designation.
-- **Substation GPS coordinates:** Not derived from the planning documents. Would require separate public source (e.g., EIA-860, OpenStreetMap, utility GIS portals).
+The earlier source manifest mixed Santee Cooper committed facilities from PDF pages/slides 24/50 with the DESC project section on pages/slides 30–48. The normalized `DESC-*` records now use only the DESC section. The Santee Cooper records may be added later under a separate utility code after a dedicated extraction and review.
 
----
+The DESC section yields 19 unique records, not 18: six detailed project pages and fourteen list entries, with Long Savannah appearing in both places and deduplicated once.
 
-## Geometry Uncertainty Levels (Defined)
+## Candidate-pair caution
 
-| Status | Meaning |
-|---|---|
-| `UNVERIFIED` | Project name and description extracted; no coordinate source found yet |
-| `INFERRED` | Coordinate estimated from substation name lookup against a public source (EIA-860, OSM); uncertainty radius ≥ 5 km |
-| `CONFIRMED` | Coordinate verified against two independent public sources; uncertainty radius < 1 km |
+`GPC-004 Effingham County 500 kV` and DESC projects containing Bluffton, Okatie, or Long Savannah are geographic research leads only. County/name proximity does not prove that two project geometries are within 40 km. The product must not display such a pair as verified until source-backed geometries are approved and the deterministic engine computes the minimum geometry distance.
 
----
+## Remaining gate
 
-## Known Gaps
-
-1. SCRTP document lists projects by name and in-service date but does not include route maps or GPS endpoints.
-2. Several projects list in-service date as TBD — schedule overlap cannot be computed for these until dates are confirmed in a later public filing.
-3. The `hypotheses/` folder contains unverified project pairs (Jasper, Okatie, etc.) that are working hypotheses only — they are not in the approved dataset and must not be used in demo output.
-4. Georgia Power source verification is incomplete as of Checkpoint 1.
-
----
-
-## Approved Dataset Location
-
-`data/approved_projects.csv` — intentionally empty until Phase 1 verification receives human approval and Georgia Power source is resolved.
+1. Human review of all 28 source-backed proposed records.
+2. Decide whether to add the live-page `Tomochichi – Towaliga River 230 kV` record after a matching raw source capture is stored.
+3. Locate and verify public geometry sources.
+4. Resolve the schema mismatch: proposed records intentionally permit blank geometry, while `db/schema.sql` currently defines production `geom geography NOT NULL`.
+5. Promote only approved records into `data/approved_projects.csv` and the production database.
