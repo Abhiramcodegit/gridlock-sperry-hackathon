@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment: {POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}", POSTGRES_DB: gridlock}
+    ports: ["5432:5432"]
+    volumes: ["./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql"]
+  api:
+    build: ./backend
+    command: uvicorn gridlock.api:app --host 0.0.0.0 --port 8000
+    ports: ["8000:8000"]
+    volumes: ["./data:/data"]
+    depends_on: [db]
