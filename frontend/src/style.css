@@ -1,1 +1,26 @@
-body{margin:0;font:16px system-ui}.app{display:grid;grid-template-columns:380px 1fr;height:100vh}aside{overflow:auto;padding:16px}main{height:100vh}ol{padding:0;list-style:none}li button{display:block;width:100%;text-align:left;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer}li span{display:block;font-size:14px;color:#555}.badge{padding:6px 10px;border-radius:6px}.warn{background:#fef3c7}.err{background:#fee2e2}.drawer{border-top:1px solid #ddd;margin-top:12px}@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto 60vh}main{height:60vh}}
+body{margin:0;font:16px system-ui}
+.app{display:grid;grid-template-columns:380px 1fr;height:100vh}
+aside{overflow:auto;padding:16px}
+main{height:100vh}
+ol{padding:0;list-style:none}
+li button{display:block;width:100%;text-align:left;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer}
+li span{display:block;font-size:14px;color:#555}
+.badge{padding:6px 10px;border-radius:6px}
+.warn{background:#fef3c7}
+.err{background:#fee2e2}
+.empty{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;color:#334155;font-size:14px;line-height:1.4}
+.drawer{border-top:1px solid #ddd;margin-top:12px}
+
+/* Candidate-review panel — deliberately marked as non-authoritative. */
+.candidates{margin-top:16px;border:1px dashed #f59e0b;border-radius:10px;padding:12px;background:#fffbeb}
+.candidate-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.candidate-head h2{font-size:16px;margin:0}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#92400e;cursor:pointer}
+.disclaimer{font-size:13px;color:#92400e;background:#fef3c7;border-radius:6px;padding:8px 10px;margin:10px 0}
+.candidate-list{list-style:none;padding:0;margin:0}
+.candidate-item{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border:1px dashed #f59e0b;border-radius:8px;background:#fff;cursor:pointer}
+.candidate-item b{color:#92400e}
+.candidate-item .src{color:#78716c;font-size:12px}
+.candidate-count{font-size:13px;color:#57534e;margin:8px 0 0}
+
+@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto 60vh}main{height:60vh}}
