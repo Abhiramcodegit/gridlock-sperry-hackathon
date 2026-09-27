@@ -60,7 +60,7 @@ Evidence comes from commit messages, directory listings at `1c31e2e`, and projec
 | 1 | Frontend is React + **TypeScript** | **Conflict:** `frontend/src` on `main` contains `App.jsx`, `App.test.jsx`, `candidateFixture.js`, `main.jsx`, `style.css`, and `test/`, with `vite.config.js`. That's JavaScript. | Treat it as JavaScript unless proven otherwise |
 | 2 | MapLibre GL JS version | A commit pins `maplibre-gl` 6.11.2, Vite 5.4.21, and a build target of es2022 | `frontend/package.json` and lockfile (read only) |
 | 3 | Backend is Python/FastAPI | Commits mention pytest and a backend; FastAPI isn't confirmed | `backend/` entry point |
-| 4 | Distance method | The brief says PostGIS. The project lead's latest ruling says the display method string is "haversine, local planar segment math" and that the PostGIS reference is inaccurate | Engine code; the UI must use the approved string |
+| 4 | Distance method | The served method is "WGS 84 geodesic between the nearest points of the published straight-line geometries (nearest points found in UTM 17N)." (An earlier "haversine, local planar segment math" wording is superseded (Rev 2.2.1).) | Engine code; the UI must use the served method string |
 | 5 | Opportunities = approved pairs within 40 km | Binding rule; not to be changed | Engine filter and tier enums |
 | 6 | Tier intervals | Half-open `[lo, hi)`; touching = intersect or ≤ 0.001 km | API contract |
 | 7 | Project geometry | Only two geometry types: `endpoint_pair` (straight line between published endpoints) and `endpoint_only` (a point) | API contract and dataset |
@@ -417,7 +417,7 @@ Note: P1's provisional first choice is Option 5, not this proof of concept. This
 | MapLibre 6 compatibility of layer-control and geocoder is not confirmed | Build failures | Verify before installing |
 | Public Nominatim misuse | Blocked by policy; ban risk | Local search only |
 | Feature IDs unstable across reloads | Hover/selected states break | Stable IDs via `promoteId` in the API contract |
-| Distance-method wording conflicts across docs | Credibility with engineers | Use the approved string: "haversine, local planar segment math" |
+| Distance-method wording conflicts across docs | Credibility with engineers | Use the served method string: "WGS 84 geodesic between the nearest points of the published straight-line geometries (nearest points found in UTM 17N)." |
 | Maintenance signals age quickly | Stale choices | Re-check before adoption |
 
 ---
@@ -496,7 +496,7 @@ Research only; nothing here is implemented or approved. Sources were read Septem
 
 **Recommended disclosure pattern (synthesis):**
 1. **Name the metric next to the number**, every time: "Closest-point distance," never a bare "distance."
-2. **Show the method string** in the drawer, using the approved wording: "Closest points between project geometries (haversine, local planar segment math)."
+2. **Show the method string** in the drawer, using the served wording: "WGS 84 geodesic between the nearest points of the published straight-line geometries (nearest points found in UTM 17N)."
 3. **Show the source's own figure alongside when the dataset provides it**, labeled with its definition and origin (for example "Center-to-center, as listed in Projects_Overlaps.xlsx"). Never silently replace it.
 4. **One sentence on why they differ:** closest-point measures the nearest parts of two geometries; center-to-center measures between their midpoints, so it's usually equal or larger for lines. Both are correct for their definitions.
 5. **State which one drives flagging.** GridLock's tiers use closest-point distance only.
