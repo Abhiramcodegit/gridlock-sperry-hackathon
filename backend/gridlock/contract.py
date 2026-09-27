@@ -1,8 +1,11 @@
-"""P2 Revision 2.2 opportunities contract for the official challenge dataset.
+"""P2 Revision 2.2.1 reference-candidate contract for the official dataset.
 
-This layer wires the deterministic official overlap engine (data/official) into
-the shape defined by docs/specs/EDGE_CASES.md (Revision 2.2). It is offline and
-deterministic: no runtime network calls, no invented coordinates, no tuning.
+This layer wires the deterministic official reference engine (data/official)
+into the shape defined by docs/specs/API_CONTRACT.md and EDGE_CASES.md
+(Revision 2.2.1). It is offline and deterministic: no runtime network calls,
+no invented coordinates, no tuning. The results are proximity-screened
+reference candidates for the two utilities to confirm, served by
+GET /reference/opportunities — never approved results.
 
 Distance model (ruling (a) on Blocker 3): the closest points between two
 geometries are found in the metric projection EPSG:32617 (UTM 17N) via shapely
@@ -21,7 +24,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 
 from pyproj import Geod, Transformer
@@ -44,11 +47,13 @@ _TIER_BOUNDS = [
 ]
 _TIER_LABELS = {
     "touching_crossing": "Touching / crossing",
-    "under_1_6_km": "Shared right-of-way, access, permits",
-    "under_8_km": "Shared laydown yards and deliveries",
-    "under_40_km": "Shared crews and equipment",
+    "under_1_6_km": "Under 1.6 km (1 mi)",
+    "under_8_km": "Under 8 km (5 mi)",
+    "under_40_km": "Under 40 km (25 mi)",
 }
-_SHARED_ENDPOINT_LABEL = "Shared endpoint facility"
+# Rev 2.2.1 (R17): coincident published coordinates do not establish one
+# physical facility, so the label is descriptive, not a facility claim.
+_SHARED_ENDPOINT_LABEL = "Endpoints published at the same coordinates"
 
 OFFICIAL_IDS = {f"DESC_{i}" for i in range(1, 6)} | {f"GPC_{i}" for i in range(1, 6)}
 
@@ -64,14 +69,23 @@ class ContractError(Exception):
     """Raised for the contract's 503/400 conditions. Carries an HTTP status and
     a structured error body (see EDGE_CASES §1.1)."""
 
-    def __init__(self, status: int, message: str, **details):
+    def __init__(self, status: int, code: str, message: str, **details):
         super().__init__(message)
         self.status = status
+        self.code = code
         self.message = message
         self.details = details
 
     def body(self) -> dict:
-        return {"error": {"message": self.message, "details": self.details}}
+        # §6.1 error envelope: code, message, http_status, details ({} if none).
+        return {
+            "error": {
+                "code": self.code,
+                "message": self.message,
+                "http_status": self.status,
+                "details": self.details or {},
+            }
+        }
 
 
 # --- helpers -----------------------------------------------------------------
@@ -95,14 +109,14 @@ def _parse_date_strict(value, project_id: str):
     s = str(value)
     if not _ISO_DATE_RE.match(s):
         raise ContractError(
-            503, "In-service date is not a valid strict YYYY-MM-DD date.",
+            503, "data_unavailable", "In-service date is not a valid strict YYYY-MM-DD date.",
             reason="unparseable_in_service_date", project_id=project_id, value=s,
         )
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except ValueError:
         raise ContractError(
-            503, "In-service date is not a valid strict YYYY-MM-DD date.",
+            503, "data_unavailable", "In-service date is not a valid strict YYYY-MM-DD date.",
             reason="unparseable_in_service_date", project_id=project_id, value=s,
         )
 
@@ -176,19 +190,25 @@ def _distance_basis(desc_kind: str, gpc_kind: str) -> str:
 
 
 def _detect_shared_endpoint(desc: dict, gpc: dict):
-    """Return (detected: bool, name: str|None). A shared endpoint exists when a
-    known DESC endpoint and a known GPC endpoint are within SHARED_ENDPOINT_KM.
-    The name concatenates the two dataset labels verbatim (no case change)."""
-    best = None
+    """Return (detected: bool, name: str|None) per GEOMETRY_MATH.md §7.
+
+    Compare known endpoints in the fixed nested order DESC a x GPC a,
+    DESC a x GPC b, DESC b x GPC a, DESC b x GPC b (skipping unknown
+    endpoints). The FIRST comparison within SHARED_ENDPOINT_KM is the match
+    (not the minimum-distance one). Name rule: if the matched labels are equal
+    after trimming whitespace and case-folding, emit the trimmed DESC label
+    alone; otherwise emit "<DESC label> / <GPC label>", each trimmed, verbatim
+    (no case normalization)."""
     for d_label, d_c in _known_endpoints(desc):
         for g_label, g_c in _known_endpoints(gpc):
             km = _geodesic_km(d_c[0], d_c[1], g_c[0], g_c[1])
-            if km <= SHARED_ENDPOINT_KM and (best is None or km < best[0]):
-                best = (km, d_label, g_label)
-    if best is None:
-        return False, None
-    _, d_label, g_label = best
-    return True, f"{d_label} / {g_label}"
+            if km <= SHARED_ENDPOINT_KM:
+                d_trim = (d_label or "").strip()
+                g_trim = (g_label or "").strip()
+                if d_trim.casefold() == g_trim.casefold():
+                    return True, d_trim
+                return True, f"{d_trim} / {g_trim}"
+    return False, None
 
 
 # --- validation --------------------------------------------------------------
@@ -211,7 +231,7 @@ def validate_dataset(projects: list[dict]) -> ValidatedDataset:
     ids = [p["id"] for p in projects]
     if len(ids) != 10 or set(ids) != OFFICIAL_IDS or len(set(ids)) != len(ids):
         raise ContractError(
-            503, "Approved dataset must contain exactly the ten official projects.",
+            503, "data_unavailable", "Approved dataset must contain exactly the ten official projects.",
             reason="dataset_project_count_mismatch", expected=10, found=len(ids),
         )
     by_id, parsed = {}, {}
@@ -220,7 +240,7 @@ def validate_dataset(projects: list[dict]) -> ValidatedDataset:
         pid = p["id"]
         if not _known_endpoints(p):
             raise ContractError(
-                503, "Project has no known endpoint.",
+                503, "data_unavailable", "Project has no known endpoint.",
                 reason="no_known_endpoint", project_id=pid,
             )
         parsed[pid] = _parse_date_strict(p.get("in_service_date"), pid)
@@ -232,12 +252,26 @@ def validate_dataset(projects: list[dict]) -> ValidatedDataset:
 
 # --- main contract build -----------------------------------------------------
 
-def build_opportunities(projects: list[dict], *, result_source: str = "official_reference") -> dict:
-    """Build the full Revision 2.2 opportunities payload from the dataset.
+# Exact §5.4 meta constants.
+INCLUSION_THRESHOLD_KM = 40.0
+INCLUSION_THRESHOLD_MI_DISPLAY = 25
+INCLUSION_RULE = "closest_distance_km < 40.0 and utilities differ"
+RANKING_RULE = "closest_distance_km asc, date_gap_days asc nulls last, opportunity_id asc"
 
-    Returns {"data": [...], "meta": {...}}. Raises ContractError for the
-    documented 503 conditions. Only cross-utility (DESC x GPC) pairs under the
-    strict < 40 km gate are returned, ranked per EDGE_CASES §5.
+
+def _now_iso_utc() -> str:
+    """ISO 8601 UTC timestamp, e.g. 2026-09-27T05:33:00Z."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def build_opportunities(projects: list[dict], *, dataset_version: str) -> dict:
+    """Build the full Revision 2.2.1 reference-candidate payload.
+
+    Returns {"data": [...], "meta": {...}} with the exact §5.4 nine-field meta.
+    Raises ContractError for the documented 503 conditions. Only cross-utility
+    (DESC x GPC) pairs under the strict < 40 km gate are returned, ranked per
+    EDGE_CASES §5. `dataset_version` is `projects_official.json@<blob SHA>`,
+    computed by the caller from the served file.
     """
     vd = validate_dataset(projects)
     desc = sorted([p for p in projects if p["id"].startswith("DESC_")], key=lambda p: p["id"])
@@ -263,14 +297,23 @@ def build_opportunities(projects: list[dict], *, result_source: str = "official_
 
     return {
         "data": rows,
-        "meta": {
-            "result_source": result_source,
-            "gate_km": GATE_KM,
-            "gate_m": GATE_M,
-            "pair_count": 25,
-            "opportunity_count": len(rows),
-            "endpoint_only_count": vd.endpoint_only_count,
-        },
+        "meta": _build_meta(len(rows), len(rows), filter_project_id=None,
+                            dataset_version=dataset_version),
+    }
+
+
+def _build_meta(count: int, total_count: int, *, filter_project_id, dataset_version: str) -> dict:
+    """The exact §5.4 nine-field meta. No extra keys."""
+    return {
+        "count": count,
+        "total_count": total_count,
+        "inclusion_threshold_km": INCLUSION_THRESHOLD_KM,
+        "inclusion_threshold_mi_display": INCLUSION_THRESHOLD_MI_DISPLAY,
+        "inclusion_rule": INCLUSION_RULE,
+        "ranking_rule": RANKING_RULE,
+        "filter_project_id": filter_project_id,
+        "dataset_version": dataset_version,
+        "generated_at": _now_iso_utc(),
     }
 
 
@@ -302,6 +345,11 @@ def _evaluate_pair(desc: dict, gpc: dict, vd: ValidatedDataset):
 
     endpoint_only_side = desc_kind == "endpoint_only" or gpc_kind == "endpoint_only"
 
+    # Round closest points once; both the point objects and the connector use
+    # the same rounded values, in [lon, lat] order for the GeoJSON connector.
+    a_lon, a_lat = _round(a_ll[0], 6), _round(a_ll[1], 6)
+    b_lon, b_lat = _round(b_ll[0], 6), _round(b_ll[1], 6)
+
     return {
         "opportunity_id": f"{desc['id']}__{gpc['id']}",
         "rank": None,  # assigned after sort
@@ -314,24 +362,23 @@ def _evaluate_pair(desc: dict, gpc: dict, vd: ValidatedDataset):
         "coordination_tier": tier,
         "coordination_tier_label": tier_label,
         "tier_confidence": "reduced" if endpoint_only_side else "high",
-        "date_gap_days": gap_abs,
-        "date_gap_days_signed": gap_signed,
-        "distance_basis": _distance_basis(desc_kind, gpc_kind),
-        "pair_geometry_confidence": _pair_geometry_confidence(desc_kind, gpc_kind),
-        "is_endpoint_only_estimate": endpoint_only_side,
         "shared_endpoint_detected": shared_detected,
         "shared_endpoint_name": shared_name,
-        "closest_point_desc": [_round(a_ll[0], 6), _round(a_ll[1], 6)],
-        "closest_point_gpc": [_round(b_ll[0], 6), _round(b_ll[1], 6)],
+        "distance_basis": _distance_basis(desc_kind, gpc_kind),
+        "pair_geometry_confidence": _pair_geometry_confidence(desc_kind, gpc_kind),
+        "desc_geometry_confidence": desc_kind,
+        "gpc_geometry_confidence": gpc_kind,
+        "closest_point_desc": {"lat": a_lat, "lon": a_lon},
+        "closest_point_gpc": {"lat": b_lat, "lon": b_lon},
         "closest_connector": {
             "type": "LineString",
-            "coordinates": [
-                [_round(a_ll[0], 6), _round(a_ll[1], 6)],
-                [_round(b_ll[0], 6), _round(b_ll[1], 6)],
-            ],
+            "coordinates": [[a_lon, a_lat], [b_lon, b_lat]],
         },
-        "data_warnings": [],
-        "result_source": "official_reference",
+        "desc_in_service_date": desc.get("in_service_date"),
+        "gpc_in_service_date": gpc.get("in_service_date"),
+        "date_gap_days": gap_abs,
+        "date_gap_days_signed": gap_signed,
+        "is_endpoint_only_estimate": endpoint_only_side,
         # internal ranking key, removed before serialization
         "_full_km": closest_km_full,
     }
@@ -342,19 +389,23 @@ def validate_project_id(project_id: str) -> None:
     (case-sensitive)."""
     if project_id not in OFFICIAL_IDS:
         raise ContractError(
-            400, "Unknown or wrong-case project_id.",
-            reason="invalid_project_id", project_id=project_id,
+            400, "invalid_project_id", "Unknown or wrong-case project_id.",
+            project_id=project_id,
         )
 
 
 def filter_by_project(payload: dict, project_id: str) -> dict:
     """Return the payload subset for a single project, preserving original rank
-    and order. Assumes project_id already validated."""
+    and order. Matches EITHER pair member. Ranks are NOT renumbered.
+    `meta.total_count` stays the pre-filter count; `meta.count` becomes the
+    post-filter count; `meta.filter_project_id` is set. Assumes project_id
+    already validated."""
     subset = [
         r for r in payload["data"]
         if r["desc_project_id"] == project_id or r["gpc_project_id"] == project_id
     ]
     meta = dict(payload["meta"])
-    meta["opportunity_count"] = len(subset)
-    meta["filtered_project_id"] = project_id
+    meta["count"] = len(subset)               # post-filter
+    # total_count is untouched (pre-filter, set at build time)
+    meta["filter_project_id"] = project_id
     return {"data": subset, "meta": meta}
