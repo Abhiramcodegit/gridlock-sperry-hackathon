@@ -24,12 +24,16 @@ li span{display:block;font-size:14px;color:#555}
 .candidate-count{font-size:13px;color:#57534e;margin:8px 0 0}
 
 /* Custom MapLibre controls (Fit-to-projects, Reset-to-Southeast).
-   Override the sidebar `li button` block sizing and match MapLibre's
-   standard 29x29 control-group button. */
+   Override the sidebar `li button` block sizing and use a 44x44 touch target
+   (WCAG 2.5.5 target-size guidance) so controls are comfortably tappable on
+   mobile. Applies to all control-group buttons, including MapLibre's built-in
+   zoom/compass, for a consistent, accessible size. */
 .maplibregl-ctrl-group button{
-  display:block;width:29px;height:29px;padding:0;margin:0;
-  border:0;background:#fff;cursor:pointer;font-size:16px;line-height:29px;text-align:center;color:#333;
+  display:block;width:44px;height:44px;padding:0;margin:0;
+  border:0;background:#fff;cursor:pointer;font-size:20px;line-height:44px;text-align:center;color:#333;
 }
 .maplibregl-ctrl-group button:hover{background:#f2f2f2}
+/* Keep MapLibre's zoom/compass control icons centered at the larger size. */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon{width:44px;height:44px}
 
 @media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto 60vh}main{height:60vh}}

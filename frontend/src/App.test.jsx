@@ -68,6 +68,17 @@ vi.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}))
 
 // Import App AFTER the mocks are registered.
 import App from './App.jsx'
+// Candidate-review geometry now loads at runtime from a static data asset
+// (F18: no hardcoded coordinates in App.jsx). Tests drive that fetch from the
+// test-only fixture below (moved out of src/ into test/fixtures/).
+import { candidateFeatureCollection, PROPOSED_TOTAL } from './test/fixtures/candidateFixture.js'
+
+// FeatureCollection the app expects from /static/candidates_proposed.geojson,
+// including the metadata.proposed_total the sidebar count reads.
+const candidatesResponseBody = {
+  ...candidateFeatureCollection,
+  metadata: { proposed_total: PROPOSED_TOTAL },
+}
 
 // ---- fetch helpers ----------------------------------------------------------
 function jsonResponse(body, ok = true, status = 200) {
@@ -95,6 +106,10 @@ function installDefaultFetch() {
     }
     if (url === '/static/opportunities.json') {
       return jsonResponse([])
+    }
+    // Candidate-review geometry (runtime static data asset).
+    if (url === '/static/candidates_proposed.geojson') {
+      return jsonResponse(candidatesResponseBody)
     }
     return jsonResponse(null, false, 404)
   })

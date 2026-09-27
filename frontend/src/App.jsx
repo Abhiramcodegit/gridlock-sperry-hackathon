@@ -7,12 +7,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import {
-  candidateFeatureCollection,
-  CANDIDATE_RECORDS,
-  PROPOSED_TOTAL,
-  PROPOSED_WITHOUT_GEOMETRY,
-} from './candidateFixture'
 
 const COLORS = { DESC: '#1f6feb', GPC: '#d97706' }
 // Candidate-review styling: amber + dashed, deliberately distinct from the
@@ -24,11 +18,16 @@ const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
 // Initial view: Georgia–South Carolina region.
 const HOME_CENTER = [-81.3, 33.2]
 const HOME_ZOOM = 6
+// How long to wait for the basemap to finish (reach 'idle') before we treat a
+// map 'error' as a genuine basemap failure and show the badge.
+const BASEMAP_IDLE_GRACE_MS = 6000
 // Attribution note: the OpenFreeMap "openmaptiles" source TileJSON already
 // supplies the required credit ("OpenFreeMap © OpenMapTiles Data from
 // OpenStreetMap", with links). MapLibre's built-in AttributionControl renders
 // that automatically, so we leave it enabled and do NOT add a customAttribution
 // (which would duplicate the text).
+
+const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
 async function get(path, fallback) {
   try {
@@ -42,12 +41,33 @@ async function get(path, fallback) {
   }
 }
 
+// Fetch the NON-AUTHORITATIVE candidate-review geometry at runtime. Per F18 the
+// coordinates are NOT hardcoded in the bundle; they live in a static data asset
+// derived from data/normalized/projects_proposed.csv. Returns a normalized
+// FeatureCollection (never throws).
+async function getCandidates() {
+  try {
+    const r = await fetch('/static/candidates_proposed.geojson')
+    if (!r.ok) throw 0
+    const fc = await r.json()
+    if (!fc || !Array.isArray(fc.features)) return EMPTY_FC
+    return fc
+  } catch {
+    return EMPTY_FC
+  }
+}
+
 export default function App() {
   const el = useRef(null), map = useRef(null)
-  // Latest approved FeatureCollection, kept so overlays can be re-added if the
-  // basemap style reloads (setStyle would otherwise drop custom sources/layers).
-  const approvedFC = useRef({ type: 'FeatureCollection', features: [] })
+  // Tracked geometry (item 3): kept in refs so the Fit-to-projects control and
+  // the styledata re-add path can read them WITHOUT touching MapLibre private
+  // fields (source._data). Mirrors of the React state below.
+  const approvedFCRef = useRef(EMPTY_FC)
+  const candidateFCRef = useRef(EMPTY_FC)
+
   const [opps, setOpps] = useState([])
+  const [candidates, setCandidates] = useState(EMPTY_FC)
+  const [proposedTotal, setProposedTotal] = useState(0)
   const [sel, setSel] = useState(null)
   const [offline, setOffline] = useState(false)
   const [err, setErr] = useState(null)
@@ -68,36 +88,75 @@ export default function App() {
     })
 
     // ---- Map controls (guarded so they no-op where unavailable, e.g. tests) ----
-    addControls(map.current)
-
-    // Graceful basemap-loading failure: MapLibre emits 'error' for failed tile
-    // /style requests. Surface an honest badge; overlays + sidebar keep working.
-    if (typeof map.current.on === 'function') {
-      map.current.on('error', (e) => {
-        const msg = e && e.error && e.error.message ? e.error.message : ''
-        // Only flag basemap/style/tile failures, not unrelated warnings.
-        if (/style|tiles?|sprite|glyph|fetch|load/i.test(msg) || !msg) {
-          setBasemapError(true)
-        }
-      })
-    }
+    // Pass getters so the Fit control always reads the latest tracked geometry.
+    addControls(map.current, {
+      getApproved: () => approvedFCRef.current,
+      getCandidates: () => candidateFCRef.current,
+    })
 
     let cancelled = false
     let dataLoaded = false
+    let mapReachedIdle = false
 
-    // Fetch project/opportunity data and populate the sidebar. This does NOT
-    // depend on the basemap succeeding, so the sidebar still works if tiles or
-    // the style fail to load. Idempotent — safe to call more than once.
+    // ---- Narrowed basemap-failure detection (item 1) ----
+    // We no longer flag every 'error' (the old `|| !msg` catch-all produced
+    // false positives on benign MapLibre errors even when tiles returned 200).
+    // A basemap failure is only reported when BOTH are true:
+    //   (a) an 'error' clearly attributable to the basemap fired
+    //       (it references the openmaptiles/basemap source, OR carries an
+    //        HTTP error status, OR names the style/tiles/sprite/glyphs), AND
+    //   (b) the map has not reached 'idle' within a grace window (i.e. the
+    //       basemap genuinely did not finish rendering).
+    let basemapErrorSeen = false
+    function maybeReportBasemapFailure() {
+      if (cancelled) return
+      if (basemapErrorSeen && !mapReachedIdle) setBasemapError(true)
+    }
+    function isBasemapError(e) {
+      if (!e) return false
+      // MapLibre attaches sourceId for source/tile errors.
+      if (e.sourceId) return e.sourceId === 'openmaptiles' || e.sourceId === 'ne2_shaded'
+      const status = e.error && (e.error.status || e.error.statusCode)
+      if (typeof status === 'number' && status >= 400) return true
+      const msg = e.error && e.error.message ? String(e.error.message) : ''
+      // Require an explicit basemap-resource keyword; no empty-message catch-all.
+      return /\b(style|tile|tiles|sprite|glyph|glyphs)\b/i.test(msg)
+    }
+
+    if (typeof map.current.on === 'function') {
+      map.current.on('error', (e) => {
+        if (isBasemapError(e)) {
+          basemapErrorSeen = true
+          // Defer: if the map still reaches 'idle', this was transient/benign.
+          setTimeout(maybeReportBasemapFailure, BASEMAP_IDLE_GRACE_MS)
+        }
+      })
+      // 'idle' fires once the map has finished loading and rendering the current
+      // view. Reaching it means the basemap is fine, regardless of earlier
+      // transient errors — so we clear any pending/!shown failure state.
+      map.current.on('idle', () => {
+        mapReachedIdle = true
+        if (!cancelled) setBasemapError(false)
+      })
+    }
+
+    // Fetch project/opportunity/candidate data and populate the sidebar. This
+    // does NOT depend on the basemap succeeding, so the sidebar still works if
+    // tiles or the style fail to load. Idempotent — safe to call more than once.
     async function loadData() {
       if (dataLoaded || cancelled) return
       dataLoaded = true
       try {
         const [fc, o1] = await get('/projects', '/static/projects_approved.geojson')
         const [op, o2] = await get('/opportunities', '/static/opportunities.json')
+        const cand = await getCandidates()
         if (cancelled) return
-        approvedFC.current = fc
+        approvedFCRef.current = fc || EMPTY_FC
+        candidateFCRef.current = cand
         setOffline(o1 || o2)
         setOpps(Array.isArray(op) ? op : [])
+        setCandidates(cand)
+        setProposedTotal(candidateProposedTotal(cand))
         // Add overlays if the style is ready; otherwise the styledata/load
         // handlers below will add them once it is.
         tryAddOverlays()
@@ -115,12 +174,20 @@ export default function App() {
       const m = map.current
       if (!m) return
       const styleReady = typeof m.isStyleLoaded !== 'function' || m.isStyleLoaded()
-      if (styleReady) addOverlays(m, approvedFC.current)
+      if (styleReady) addOverlays(m, approvedFCRef.current, candidateFCRef.current)
     }
 
     // Primary path: once the map's style has loaded, fetch data and add overlays.
     map.current.on('load', () => {
       loadData().then(tryAddOverlays)
+    })
+
+    // Item 4: re-add overlays after a style (re)load. setStyle() drops custom
+    // sources/layers; 'styledata' fires when a new style finishes loading, so
+    // we re-apply our guarded overlays. Guarded add makes this idempotent for
+    // the many 'styledata' events MapLibre emits during normal tile loading.
+    map.current.on('styledata', () => {
+      if (!cancelled) tryAddOverlays()
     })
 
     // Safety net: don't let the sidebar be hostage to the basemap. If the map
@@ -163,10 +230,12 @@ export default function App() {
 
   function flyToCandidate(c) {
     if (!map.current) return
-    map.current.flyTo({ center: c.coordinates, zoom: 11 })
+    map.current.flyTo({ center: c.geometry.coordinates, zoom: 11 })
   }
 
   const showEmptyState = !loading && !err && opps.length === 0
+  const candidateFeatures = candidates.features || []
+  const withoutGeometry = Math.max(0, proposedTotal - candidateFeatures.length)
 
   return (
     <div className="app">
@@ -208,7 +277,7 @@ export default function App() {
           </ol>
         )}
 
-        {/* Honest empty state. */}
+        {/* Honest empty state (verbatim copy relied upon by the test suite). */}
         {showEmptyState && (
           <p className="empty" data-testid="empty-state">
             No approved coordination opportunities currently qualify. Showing 2
@@ -239,23 +308,23 @@ export default function App() {
             </p>
 
             <ul className="candidate-list">
-              {CANDIDATE_RECORDS.map((c) => (
-                <li key={c.id} data-testid={`candidate-item-${c.id}`}>
+              {candidateFeatures.map((c) => (
+                <li key={c.properties.id} data-testid={`candidate-item-${c.properties.id}`}>
                   <button
                     className="candidate-item"
                     onClick={() => flyToCandidate(c)}
-                    data-testid={`candidate-marker-${c.id}`}
+                    data-testid={`candidate-marker-${c.properties.id}`}
                   >
-                    <b>{c.id} — {c.name}</b>
-                    <span data-testid={`candidate-label-${c.id}`}>{c.label}</span>
-                    <span className="src">{c.geometry_source}</span>
+                    <b>{c.properties.id} — {c.properties.name}</b>
+                    <span data-testid={`candidate-label-${c.properties.id}`}>{c.properties.label}</span>
+                    <span className="src">{c.properties.geometry_source}</span>
                   </button>
                 </li>
               ))}
             </ul>
 
             <p className="candidate-count" data-testid="candidate-count">
-              {PROPOSED_WITHOUT_GEOMETRY} of {PROPOSED_TOTAL} proposed records
+              {withoutGeometry} of {proposedTotal} proposed records
               have no geometry and are not shown on the map.
             </p>
           </section>
@@ -276,12 +345,20 @@ export default function App() {
   )
 }
 
+// Total proposed-record count. Prefer the value the data asset reports in its
+// metadata; fall back to the number of features present. Never hardcoded.
+function candidateProposedTotal(fc) {
+  const meta = fc && fc.metadata
+  if (meta && Number.isFinite(meta.proposed_total)) return meta.proposed_total
+  return (fc && fc.features ? fc.features.length : 0)
+}
+
 // ---------------------------------------------------------------------------
 // Map controls. Each control is guarded: if the corresponding MapLibre class
 // or Map method is unavailable (e.g. under the jsdom test mock), it is skipped
 // so the app and tests keep working without a real WebGL map.
 // ---------------------------------------------------------------------------
-function addControls(m) {
+function addControls(m, geom) {
   if (!m || typeof m.addControl !== 'function') return
 
   // Note: attribution is handled by MapLibre's built-in AttributionControl
@@ -296,19 +373,19 @@ function addControls(m) {
   if (maplibregl.ScaleControl) {
     m.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left')
   }
-  // Custom: fit to loaded project/candidate geometry.
-  m.addControl(new FitToProjectsControl(), 'top-right')
+  // Custom: fit to loaded project/candidate geometry (reads tracked state).
+  m.addControl(new FitToProjectsControl(geom), 'top-right')
   // Custom: reset to the Southeast (GA–SC) home view.
   m.addControl(new ResetViewControl(), 'top-right')
 }
 
 // Add all custom sources/layers. Safe to call after style (re)load.
-function addOverlays(m, fc) {
+function addOverlays(m, approvedFC, candidateFC) {
   if (!m || typeof m.addSource !== 'function') return
 
   // ---- Approved layers (authoritative, primary styling) ----
   if (!hasSource(m, 'p')) {
-    m.addSource('p', { type: 'geojson', data: fc })
+    m.addSource('p', { type: 'geojson', data: approvedFC || EMPTY_FC })
   }
   if (!hasLayer(m, 'lines')) {
     m.addLayer({
@@ -333,7 +410,7 @@ function addOverlays(m, fc) {
 
   // Closest-point segment overlay for APPROVED opportunities (dashed red).
   if (!hasSource(m, 'seg')) {
-    m.addSource('seg', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+    m.addSource('seg', { type: 'geojson', data: EMPTY_FC })
   }
   if (!hasLayer(m, 'seg')) {
     m.addLayer({
@@ -344,7 +421,7 @@ function addOverlays(m, fc) {
 
   // ---- Candidate-review layer (NON-AUTHORITATIVE proposed proxies) ----
   if (!hasSource(m, 'candidates')) {
-    m.addSource('candidates', { type: 'geojson', data: candidateFeatureCollection })
+    m.addSource('candidates', { type: 'geojson', data: candidateFC || EMPTY_FC })
   }
   if (!hasLayer(m, 'candidate-pts')) {
     m.addLayer({
@@ -385,7 +462,9 @@ function hasLayer(m, id) {
 }
 
 // Fit the view to all loaded project + candidate geometry.
+// Item 3: reads tracked geometry via injected getters — no source._data.
 class FitToProjectsControl {
+  constructor(geom) { this._geom = geom || {} }
   onAdd(map) {
     this._map = map
     this._c = mkButton('⤢', 'Fit to projects', () => {
@@ -399,10 +478,10 @@ class FitToProjectsControl {
           else if (g.type === 'LineString') { for (const c of g.coordinates) { b.extend(c); any = true } }
         }
       }
-      // Read live source data where available; fall back to fixture geometry.
-      eat(candidateFeatureCollection)
-      const src = map.getSource && map.getSource('p')
-      if (src && src._data) eat(src._data)
+      const getApproved = this._geom.getApproved || (() => EMPTY_FC)
+      const getCandidates = this._geom.getCandidates || (() => EMPTY_FC)
+      eat(getApproved())
+      eat(getCandidates())
       if (any) map.fitBounds(b, { padding: 80, maxZoom: 11, duration: 600 })
     })
     return this._c
