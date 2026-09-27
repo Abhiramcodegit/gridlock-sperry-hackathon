@@ -137,16 +137,35 @@ docker compose up --build
    separate `maplibre-gl-worker.mjs`; the bare `import * as maplibregl` does
    not reliably resolve that worker under the Vite dev server.
 
-   **Fix already prepared (NOT yet merged):** branch
-   `frontend/fix-worker-loading` (off `9af3341`) —
-   (a) `import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'`
-   then `maplibregl.setWorkerUrl(maplibreWorkerUrl)`, and
-   (b) add `map.on('error', ...)` so the app degrades gracefully instead of
-   hanging. Locally verified: worker asset resolves (HTTP 200), `npm test --
-   --run` 9/9 pass, `npm run build` exit 0. This fix is NOT on `main` yet and
-   should be reviewed + merged before any live demo. (It touches Agent 2/3
-   code, so it needs independent review — Agent 5 authored the fix and should
-   not also be its sole reviewer.)
+   **Fix prepared — the changes are:**
+   - `frontend/src/App.jsx`:
+     (a) `import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'`
+     then `maplibregl.setWorkerUrl(maplibreWorkerUrl)`, and
+     (b) add `map.on('error', ...)` so the app degrades gracefully instead of
+     hanging on the spinner.
+   - `frontend/src/App.test.jsx`: add `setWorkerUrl` to the maplibre mock and
+     stub the `?worker&url` import so the suite still runs.
+
+   Locally verified: worker asset resolves (HTTP 200), `npm test -- --run`
+   9/9 pass, `npm run build` exit 0.
+
+   > **ACCESS / STATUS — IMPORTANT:** As of this handoff the fix is **NOT on
+   > `main`, NOT pushed to the remote, and NOT yet committed.** It exists only
+   > on the developer's local machine:
+   > - Local branch: `frontend/fix-worker-loading` (created off `9af3341`).
+   > - The actual edits are held in a local git **stash** (`stash@{0}`,
+   >   "WIP on fix-worker-loading"), not as a commit on that branch.
+   >
+   > This means you **cannot** `git fetch`/`git checkout frontend/fix-worker-loading`
+   > from GitHub and see the fix — the remote branch does not exist. To make it
+   > accessible, the local stash must be applied, committed, and the branch
+   > pushed. Until then, `main` still ships the buggy version and the map will
+   > hang for any browser where the maplibre worker fails to auto-resolve.
+   >
+   > Recommended: apply `stash@{0}` on `frontend/fix-worker-loading`, commit,
+   > push, and open a PR for independent review before any live demo. (The fix
+   > touches Agent 2/3 code, so Agent 5 — who authored it — should not be its
+   > sole reviewer.)
 
 2. **Private-repo CI attestation gap.** Agent 5 could not open Actions run
    `36287891004` (private repo, no API auth). A human repository member should
