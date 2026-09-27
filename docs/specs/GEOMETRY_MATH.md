@@ -3,7 +3,7 @@ STATUS: TARGET SPECIFICATION — NOT IMPLEMENTED. As of origin/main 1c31e2e6efc7
 # GridLock Geometry Math
 
 **Path:** `docs/specs/GEOMETRY_MATH.md`
-**Status:** Target specification for the distance engine. Revision 2.2
+**Status:** Target specification for the distance engine. Revision 2.2.1
 **Scope:** Closest-point distance, projection, haversine, closest-point coordinates, center distance, shared-endpoint detection, projection error bound, rounding, unit conversion, and numerical edge cases
 
 Companion specs:
@@ -25,6 +25,7 @@ Companion specs:
 | 2.2 | R7 | **C-3 reclassification.** The §8.3 figures measure projection error internal to the spherical model. They are self-consistency measurements, not accuracy measurements. Accuracy against WGS 84 is recorded separately in §8.5 with the only authorized judge wording |
 | 2.2 | R8 | **C-2.** Shared-endpoint wording no longer asserts that the two endpoints are the same facility (§1, §7) |
 | 2.2 | R9 | **C-4.** §7.2 example uses the verbatim dataset labels: `Thurmond Sub / THURMOND DAM #5` |
+| 2.2.1 | R10 | Copy only: shared-endpoint label value changed to `Endpoints published at the same coordinates`, and positive "shared-facility finding" wording neutralized (§7.3, V11). No geometry, threshold, distance, detection, or matching change. Revision 2.3 remains reserved for the WGS 84 geodesic rewrite |
 
 ---
 
@@ -353,8 +354,8 @@ Example from the official dataset: DESC_2's known endpoint is labeled `Thurmond 
 
 - Shared-endpoint detection does not replace the §5 closest-point computation. The engine still runs §5 and reports its `d` and closest points.
 - A shared endpoint forces `d ≤ 0.001` km, so the tier is always `touching_crossing`.
-- When `shared_endpoint_detected` is `true`, `coordination_tier_label` is `Shared endpoint facility`, not `Touching / crossing`.
-- An approximately 0 km result is **valid output**. The API presents it as a shared-facility finding, not as an unqualified line crossing.
+- When `shared_endpoint_detected` is `true`, `coordination_tier_label` is `Endpoints published at the same coordinates`, not `Touching / crossing`.
+- An approximately 0 km result is **valid output**. The API presents it as a proximity candidate from coincident published coordinates, not as an unqualified line crossing.
 - When either project is `endpoint_only`, `tier_confidence` is `reduced` regardless of the shared endpoint.
 
 ---
@@ -497,7 +498,7 @@ These vectors use synthetic coordinates chosen for math verification only. They 
 | V8 | Segment-to-segment, endpoint candidate wins | DESC `(0, 0) → (0, 1)`, GPC `(0.1, 0.5) → (0.2, 0.5)` | `11.119508` | `6.909342` | DESC `(0, 0.5)`, GPC `(0.1, 0.5)`; candidate 3 |
 | V9 | Identical points | `(33.0, -81.0)`, `(33.0, -81.0)` | `0.000000` | `0.000000` | Both `(33.0, -81.0)`; tier `touching_crossing`; `shared_endpoint_detected = true` |
 | V10 | Zero-length segment to point | DESC segment `(0, 0) → (0, 0)`, GPC point `(0, 1)` | `111.195080` | `69.093420` | DESC `(0, 0)`, GPC `(0, 1)`; `distance_basis = point_to_segment`; no error |
-| V11 | Shared endpoint, point to segment end | DESC point `(33.0, -81.0)` labeled `Alpha`; GPC segment `(33.1, -81.0) → (33.0, -81.0)`, endpoint B labeled `Alpha Dam` | `0.000000` | `0.000000` | `shared_endpoint_detected = true`, `shared_endpoint_name = "Alpha / Alpha Dam"`, tier `touching_crossing`, label `Shared endpoint facility`, `tier_confidence = reduced` |
+| V11 | Shared endpoint, point to segment end | DESC point `(33.0, -81.0)` labeled `Alpha`; GPC segment `(33.1, -81.0) → (33.0, -81.0)`, endpoint B labeled `Alpha Dam` | `0.000000` | `0.000000` | `shared_endpoint_detected = true`, `shared_endpoint_name = "Alpha / Alpha Dam"`, tier `touching_crossing`, label `Endpoints published at the same coordinates`, `tier_confidence = reduced` |
 | V12 | Shared endpoint, equal labels | DESC point `(33.0, -81.0)` labeled `Beta`; GPC point `(33.0, -81.0)` labeled ` beta ` | `0.000000` | `0.000000` | `shared_endpoint_name = "Beta"` |
 
 Tier boundary vectors, applied directly to the tier function with full-precision inputs (binding):

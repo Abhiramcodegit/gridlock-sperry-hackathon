@@ -3,7 +3,7 @@ STATUS: TARGET SPECIFICATION — NOT IMPLEMENTED. As of origin/main 1c31e2e6efc7
 # GridLock Edge Cases
 
 **Path:** `docs/specs/EDGE_CASES.md`
-**Status:** Target specification for backend, frontend, and QA agents. Revision 2.2
+**Status:** Target specification for backend, frontend, and QA agents. Revision 2.2.1
 **Scope:** Every ambiguous input or output case and its single required behavior
 
 Companion specs:
@@ -29,6 +29,8 @@ Every case below has exactly one required behavior. If a case is not listed here
 | 2.2 | R11 | Target dataset is `data/official/projects_official.json`. It counts as approved only after PR #8 clears audit and merges. The approved-only rule and the 40 km threshold are unchanged |
 | 2.2 | R12 | References to an uncommitted copy document replaced with "any other specification" (E35) |
 | 2.2 | R13 | The withdrawn Monte Carlo figures (0.014% / 2.4 m; 4.96% / 205 km) must not appear in any UI copy or document. Reproducible figures and their reference models are in `GEOMETRY_MATH.md` §8.3 and §8.5 |
+| 2.2.1 | R14 | Copy: shared-endpoint label value changed to `Endpoints published at the same coordinates`; headline changed to `Proximity candidate: endpoints published at the same coordinates` with a separate name line; callout unchanged (§3.2–§3.4, C14, C16). Empty-state headings changed: §8.1 `No cross-utility opportunities found` → `No cross-utility reference candidates found`; §8.2 `No coordination opportunities for <project_id>` → `No reference candidates for <project_id>` (bodies unchanged); new §8.4 approved-result empty state `No approved coordination opportunities yet`. Field names and logic unchanged |
+| 2.2.1 | R15 | Coordinate-derived reference candidates are not approved results. They are served only by `GET /reference/opportunities`. Six-pair assertions, empty states (§8.1, §8.2, new §8.4), and C-rows retargeted per `API_CONTRACT.md` R20 |
 
 ---
 
@@ -59,8 +61,8 @@ Every case below has exactly one required behavior. If a case is not listed here
 | E21 | Non-null in-service date that is not a valid strict `YYYY-MM-DD` date (including partial dates) | `503 data_unavailable`, `details.reason = "unparseable_in_service_date"`, with `project_id` and `value` |
 | E22 | Very large date gap on a qualifying pair | Pair still qualifies, tier unchanged. See §7 |
 | E23 | Pair qualifies on distance with dates in either order | Qualifies. `date_gap_days` is absolute. `date_gap_days_signed` carries direction |
-| E24 | Zero opportunities overall | `200`, `data: []`. UI shows the global empty state in §8 |
-| E25 | Zero opportunities for one project (`DESC_4`, `GPC_4`, `GPC_5`) | `200`, `data: []` when filtered. UI shows the per-project empty state in §8 |
+| E24 | Zero opportunities overall | Zero results on either route: `200`, `API_CONTRACT.md` §5.2 envelope, `data: []`. UI shows §8.1 for reference candidates, §8.4 for approved results |
+| E25 | Zero opportunities for one project (`DESC_4`, `GPC_4`, `GPC_5`) | `200`, `data: []` from `GET /reference/opportunities?project_id=…`. UI shows §8.2 |
 | E26 | `project_id` query value in the wrong case (e.g., `desc_1`) | `400 invalid_project_id`. IDs are case-sensitive |
 | E27 | Approved dataset does not contain exactly 10 records with exactly the official `project_id` set (including duplicates) | `503 data_unavailable`, `details.reason = "dataset_project_count_mismatch"`, `expected: 10`, `found: <integer>`. Never serve partial data |
 | E28 | Endpoint outside the GA/SC validation box | Computed normally. Warning `outside_ga_sc_extent`. Not an error |
@@ -131,18 +133,19 @@ A shared endpoint exists when a known DESC endpoint and a known GPC endpoint are
 | `shared_endpoint_name` | One concatenated string per `GEOMETRY_MATH.md` §7.2, built from dataset labels verbatim |
 | `closest_distance_km` | `≤ 0.001`, often `0.000`. Valid output |
 | `coordination_tier` | `touching_crossing` |
-| `coordination_tier_label` | `Shared endpoint facility` |
+| `coordination_tier_label` | `Endpoints published at the same coordinates` |
 | `tier_confidence` | `reduced` if either project is `endpoint_only`, otherwise `high` |
 
 ### 3.3 Required presentation
 
-A shared-endpoint result is a **shared-facility finding, not an unqualified crossing**. The copy below is binding. Replace `{shared_endpoint_name}` with the payload value exactly as returned.
+A shared-endpoint result is a **proximity candidate from coincident published coordinates, not an unqualified crossing**. The copy below is binding. Replace `{shared_endpoint_name}` with the payload value exactly as returned.
 
 | UI element | Required content |
 |---|---|
-| Headline | `Shared endpoint facility: {shared_endpoint_name}` |
+| Headline | `Proximity candidate: endpoints published at the same coordinates` |
+| Name line | `{shared_endpoint_name}` |
 | Callout body | `Both filings name an endpoint that resolves to the same location, published as {shared_endpoint_name}. GridLock cannot confirm from public sources whether these are one shared site or separate facilities nearby. Both utilities would need to confirm.` |
-| Tier text | The payload `coordination_tier_label`, which is `Shared endpoint facility` |
+| Tier text | The payload `coordination_tier_label`, which is `Endpoints published at the same coordinates` |
 | Forbidden wording | `Crossing`, `Lines cross`, `Intersection`, `Touching / crossing`, `Touching or crossing` |
 | Map | A single marker at the shared location. No connector line |
 
@@ -158,7 +161,7 @@ In the official dataset, DESC_2 is `endpoint_only` with its known endpoint label
 |---|---|
 | `closest_distance_km` | `≤ 0.001`, exact value from the golden fixture |
 | `coordination_tier` | `touching_crossing` |
-| `coordination_tier_label` | `Shared endpoint facility` |
+| `coordination_tier_label` | `Endpoints published at the same coordinates` |
 | `shared_endpoint_detected` | `true` |
 | `shared_endpoint_name` | `Thurmond Sub / THURMOND DAM #5` |
 | `tier_confidence` | `reduced` (DESC_2 is `endpoint_only`) |
@@ -171,7 +174,8 @@ Rendered copy for this pair:
 
 | UI element | Rendered text |
 |---|---|
-| Headline | `Shared endpoint facility: Thurmond Sub / THURMOND DAM #5` |
+| Headline | `Proximity candidate: endpoints published at the same coordinates` |
+| Name line | `Thurmond Sub / THURMOND DAM #5` |
 | Callout body | `Both filings name an endpoint that resolves to the same location, published as Thurmond Sub / THURMOND DAM #5. GridLock cannot confirm from public sources whether these are one shared site or separate facilities nearby. Both utilities would need to confirm.` |
 
 The mixed casing is preserved deliberately. It reflects two separate filings by two separate utilities. The approximately 0 km result is correct and expected. It must never be treated as a data error, a duplicate project, or a crossing.
@@ -240,7 +244,7 @@ Rules:
 
 | Item | Required value |
 |---|---|
-| Included in `GET /opportunities` | Yes |
+| Included in `GET /reference/opportunities` | Yes. In `GET /opportunities`: only after per-geometry human approval |
 | `coordination_tier` | Determined only by `closest_distance_km`: `touching_crossing`. The date gap does not change it |
 | `date_gap_days` | `3074` |
 | Ranking effect | Date gap is used only as tiebreak key 2 in §5 |
@@ -255,22 +259,22 @@ Rules:
 
 ### 8.1 Global empty state
 
-Shown when unfiltered `GET /opportunities` returns `data: []`.
+Shown when unfiltered `GET /reference/opportunities` returns `data: []`.
 
 | Element | Required content |
 |---|---|
-| Heading | `No cross-utility opportunities found` |
+| Heading | `No cross-utility reference candidates found` |
 | Body | `No DESC and Georgia Power project pair is within 40 km (25 mi) at its closest point.` |
 | Map | Still renders all projects from `GET /projects`. No connectors |
 | Styling | Neutral informational style, not error style |
 
 ### 8.2 Per-project empty state
 
-Shown when a project is selected and `GET /opportunities?project_id=<id>` returns `data: []`. With the official dataset this applies to `DESC_4`, `GPC_4`, and `GPC_5`.
+Shown when a project is selected and `GET /reference/opportunities?project_id=<id>` returns `data: []`. With the official dataset this applies to `DESC_4`, `GPC_4`, and `GPC_5`.
 
 | Element | Required content |
 |---|---|
-| Heading | `No coordination opportunities for <project_id>` |
+| Heading | `No reference candidates for <project_id>` |
 | Body | `No project from the other utility is within 40 km (25 mi) of this project at its closest point.` |
 | Map | Highlights the selected project. No connectors |
 | Project panel | Shows `opportunity_count: 0` from `GET /projects` |
@@ -279,6 +283,16 @@ Shown when a project is selected and `GET /opportunities?project_id=<id>` return
 ### 8.3 Error state
 
 An error response is never shown as an empty state. On any non-2xx response, the UI shows `error.message` in error styling and does not show either empty state.
+
+### 8.4 Approved-result empty state
+
+Shown when `GET /opportunities` returns `data: []`. This is the current state while no geometry has completed per-geometry human approval.
+
+| Element | Required content |
+|---|---|
+| Heading | `No approved coordination opportunities yet` |
+| Body | `No project pair has completed per-geometry human approval. Coordinate-derived reference candidates are listed separately.` |
+| Styling | Neutral informational style, not error style |
 
 ---
 
@@ -311,7 +325,7 @@ An error response is never shown as an empty state. On any non-2xx response, the
 
 ## 10. When results do not match expectations
 
-If the engine does not return exactly these six pairs:
+If `GET /reference/opportunities` does not return exactly these six pairs:
 
 `DESC_1__GPC_1`, `DESC_2__GPC_1`, `DESC_3__GPC_2`, `DESC_3__GPC_3`, `DESC_5__GPC_2`, `DESC_5__GPC_3`
 
@@ -327,15 +341,15 @@ or if `DESC_4`, `GPC_4`, or `GPC_5` appears in any opportunity, the required pro
 
 ## Acceptance checks
 
-A QA agent must run all of these. "Fixture" checks use the target dataset. "Synthetic" checks use purpose-built data under `backend/tests/fixtures/synthetic/`.
+A QA agent must run all of these. "Fixture" checks use the target dataset. "Synthetic" checks use purpose-built data under `backend/tests/fixtures/synthetic/`. Fixture checks on items (C13, C15, C16) apply to items from `GET /reference/opportunities`.
 
 | # | Check | Data | Pass condition |
 |---|---|---|---|
 | C1 | Pair universe | fixture | Engine evaluates exactly 25 pairs, all DESC × GPC |
 | C2 | No same-utility pairs | synthetic | Two DESC projects 0 km apart produce no opportunity |
 | C3 | No self pairs | fixture | No `opportunity_id` has the same project on both sides |
-| C4 | Expected set | fixture | Returned `opportunity_id` set equals the six in §10 exactly |
-| C5 | Zero projects | fixture | `DESC_4`, `GPC_4`, `GPC_5` have `opportunity_count == 0` and filtered calls return `data: []` |
+| C4 | Expected set | fixture | The `opportunity_id` set from `GET /reference/opportunities` equals the six in §10 exactly |
+| C5 | Zero projects | fixture | `opportunity_count == 0` for all projects (approved-only), and filtered `GET /reference/opportunities` calls for `DESC_4`, `GPC_4`, `GPC_5` return `data: []` |
 | C6 | `endpoint_only` count | fixture | Exactly 4 projects are `endpoint_only` (DESC_1, DESC_2, DESC_4, GPC_2), and `/projects` returns `200` |
 | C7 | `none` endpoint | synthetic | Endpoint `"None "` becomes `known: false`, `location: null`, `geometry.type == "Point"` |
 | C8 | Empty endpoint | synthetic | Endpoint `""` with a known partner endpoint returns `200`, `endpoint_only`, warning `empty_endpoint_value_treated_as_unknown` |
@@ -344,26 +358,26 @@ A QA agent must run all of these. "Fixture" checks use the target dataset. "Synt
 | C11 | Zero-length segment | synthetic | Identical endpoints return `200`, `is_zero_length_segment == true`, warning `zero_length_segment`, and a correct distance |
 | C12 | Endpoint normalization | synthetic | A project with an unknown first endpoint returns the known one as `endpoint_a` |
 | C13 | `endpoint_only` labels | fixture | Every opportunity with an `endpoint_only` side has `is_endpoint_only_estimate == true` and `tier_confidence == "reduced"` |
-| C14 | Shared endpoint | synthetic | Cross-utility projects sharing one endpoint return `≤ 0.001` km, `touching_crossing`, `shared_endpoint_detected == true`, label `Shared endpoint facility` |
+| C14 | Shared endpoint | synthetic | Cross-utility projects sharing one endpoint return `≤ 0.001` km, `touching_crossing`, `shared_endpoint_detected == true`, label `Endpoints published at the same coordinates` |
 | C15 | DESC_2 + GPC_1 | fixture | Item matches every row of the §3.4 field table |
-| C16 | Shared-endpoint UI copy | fixture | The DESC_2 + GPC_1 card shows exactly the §3.4 rendered headline and callout body, one map marker, no connector, and none of the §3.3 forbidden wording |
+| C16 | Shared-endpoint UI copy | fixture | The DESC_2 + GPC_1 card shows exactly the §3.4 rendered headline, name line, and callout body, one map marker, no connector, and none of the §3.3 forbidden wording |
 | C17 | Zero distance display | fixture | A `0.000` km distance is shown as `0.000 km` with no error styling |
 | C18 | 40 km boundary | synthetic | A pair at full-precision `40.0` km is excluded. A pair at `39.9996` km is included, tier `under_40_km`, serialized `40.000` |
 | C19 | Tier boundaries | synthetic | Pairs at `1.6` and `8.0` km get `under_8_km` and `under_40_km` |
 | C20 | Tiebreak | synthetic | Three pairs with identical `float64` distances sort by `date_gap_days` ascending, `null` last, then `opportunity_id` ascending |
-| C21 | Stable ranking | fixture | Ten repeated calls return identical order and `rank` values |
-| C22 | Filtered ranks | fixture | Filtered responses keep the original `rank` values |
+| C21 | Stable ranking | fixture | Ten repeated calls to `GET /reference/opportunities` return identical order and `rank` values |
+| C22 | Filtered ranks | fixture | Filtered `GET /reference/opportunities` responses keep the original `rank` values |
 | C23 | Unparseable date | synthetic | `2027-6-1`, `06/01/2027`, and `2027` each fail load with `503`, `reason == "unparseable_in_service_date"` |
 | C24 | Missing date | synthetic | A `null` date gives both gap fields `null` and the pair still qualifies |
 | C25 | Signed vs absolute | synthetic | DESC `2030-01-01`, GPC `2029-12-31` gives `date_gap_days_signed == -1`, `date_gap_days == 1` |
 | C26 | Leap year | synthetic | `2028-02-28` to `2028-03-01` gives a gap of `2` |
-| C27 | Large gap | fixture | `DESC_2__GPC_1` is present with `date_gap_days == 3074` and tier `touching_crossing` |
+| C27 | Large gap | fixture | `DESC_2__GPC_1` is present in `GET /reference/opportunities` with `date_gap_days == 3074` and tier `touching_crossing` |
 | C28 | Date gap never filters | synthetic | A pair at 1 km with a 20,000-day gap is included with tier `under_1_6_km` |
 | C29 | Center vs closest gate | synthetic | A pair with center distance 60 km and closest distance 5 km is included with tier `under_8_km` |
-| C30 | Dataset count | synthetic | A dataset with 9 records, 11 records, or a duplicate `project_id` returns `503`, `reason == "dataset_project_count_mismatch"` on both routes |
+| C30 | Dataset count | synthetic | A dataset with 9 records, 11 records, or a duplicate `project_id` returns `503`, `reason == "dataset_project_count_mismatch"` on all three routes |
 | C31 | `503` scope | synthetic | A dataset containing only `endpoint_only` projects, zero-length segments, recoverable endpoint values, and out-of-box coordinates returns `200` |
 | C32 | Case-sensitive IDs | fixture | `?project_id=desc_1` returns `400 invalid_project_id` |
-| C33 | Global empty UI | synthetic | A dataset producing no opportunities shows the exact §8.1 heading and body, with no error styling |
+| C33 | Global empty UI | synthetic | A dataset producing no reference candidates shows the exact §8.1 heading and body. An API state with no human-approved geometries shows the exact §8.4 heading and body. Neither uses error styling |
 | C34 | Per-project empty UI | fixture | Selecting `GPC_5` shows the exact §8.2 heading and body |
 | C35 | Error UI | synthetic | A forced `503` shows `error.message` and neither empty state |
 | C36 | No runtime lookups | fixture | With outbound network blocked, backend and frontend work normally. A code search finds no Overpass or Nominatim URLs or clients outside offline data-pipeline scripts |

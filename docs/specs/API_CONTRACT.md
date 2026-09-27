@@ -1,10 +1,10 @@
-STATUS: TARGET CONTRACT — NOT IMPLEMENTED. As of origin/main 1c31e2e6efc72599317de739f98ec55bcb6f6417 (verified by P3 and P2), GET /opportunities returns an empty array from the conservative pipeline and emits none of the Revision 2.2 fields. Target dataset: data/official/projects_official.json (PR #8, not on main). Implementing this contract requires an integration PR, currently unassigned, that wires the official engine into backend/gridlock/api.py and implements every field, error, and rule below. No agent may describe this contract as live until that PR merges and acceptance checks A1–A38 pass.
+STATUS: TARGET CONTRACT — NOT IMPLEMENTED. As of origin/main 1c31e2e6efc72599317de739f98ec55bcb6f6417 (verified by P3 and P2), GET /opportunities returns an empty array from the conservative pipeline and emits none of the Revision 2.2.1 fields. Target dataset: data/official/projects_official.json (PR #8, not on main). Implementing this contract requires an integration PR, currently unassigned, that wires the official engine into backend/gridlock/api.py and implements every field, error, and rule below. No agent may describe this contract as live until that PR merges and acceptance checks A1–A38 pass.
 
 # GridLock API Contract
 
 **Path:** `docs/specs/API_CONTRACT.md`
-**Status:** Target specification for backend and frontend agents. Revision 2.2
-**Scope:** `GET /projects`, `GET /opportunities`, error responses, frontend consumption rules
+**Status:** Target specification for backend and frontend agents. Revision 2.2.1
+**Scope:** `GET /projects`, `GET /opportunities`, `GET /reference/opportunities`, error responses, frontend consumption rules
 
 Companion specs:
 - `docs/specs/GEOMETRY_MATH.md` defines every distance, closest-point, shared-endpoint, and projection calculation. Its §3–§8 distance model is superseded by pending Revision 2.3 (WGS 84 geodesic reference); see that file's banner.
@@ -34,6 +34,10 @@ If this file conflicts with a companion on that companion's topic, the companion
 | 2.2 | R14 | References to an uncommitted copy document replaced with "any other specification" |
 | 2.2 | R15 | Added Appendix A, engine-to-contract mapping gaps (informational) |
 | 2.2 | R16 | The Monte Carlo figures cited in earlier session handoffs (0.014% / 2.4 m; 4.96% / 205 km) are withdrawn project-wide as non-reproducible. Reproducible figures and their reference models are in `GEOMETRY_MATH.md` §8. This contract states no accuracy figures |
+| 2.2.1 | R17 | Copy: shared-endpoint `coordination_tier_label` value changed from `Shared endpoint facility` to `Endpoints published at the same coordinates`. UI headline changed to `Proximity candidate: endpoints published at the same coordinates`, with a separate name line. Callout unchanged. Coincident published coordinates do not establish one physical facility. Field names, tier codes, thresholds, distances, and matching logic unchanged |
+| 2.2.1 | R18 | A35: exactly one path, `frontend/src/opportunities/opportunityAdapter.js`, is excluded from Searches 1 and 2 and may map `coordination_tier` to visual style tokens only. Search 3 stays universal. Step 0 added to prove the exclusion matches one file |
+| 2.2.1 | R19 | §4.4: dataset-level audit acceptance separated from per-geometry human approval; `GET /opportunities` stays gated on human approval. New route `GET /reference/opportunities` (§5.7) serves coordinate-derived reference candidates. Former contract gap G-1 resolved. `GET /projects` and `GET /opportunities` unchanged |
+| 2.2.1 | R20 | Retarget: six-pair expected results, the §7 worked example, and EDGE §7/§10/C-row assertions moved from /opportunities to /reference/opportunities. §4.3 opportunity_count remains approved-only from /opportunities. No field, tier code, threshold, numeric pair value, geometry, detection, or matching change |
 
 ---
 
@@ -108,12 +112,12 @@ Tier is assigned from the full-precision `closest_distance_km`, never from a rou
 
 | Value | Condition on full-precision `closest_distance_km` (`d`) | Backend-emitted `coordination_tier_label` |
 |---|---|---|
-| `touching_crossing` | Geometries intersect, or `d <= 0.001` | `Touching / crossing`, or `Shared endpoint facility` when `shared_endpoint_detected` is `true` |
+| `touching_crossing` | Geometries intersect, or `d <= 0.001` | `Touching / crossing`, or `Endpoints published at the same coordinates` when `shared_endpoint_detected` is `true` |
 | `under_1_6_km` | `0.001 < d < 1.6` | `Under 1.6 km (1 mi)` |
 | `under_8_km` | `1.6 <= d < 8.0` | `Under 8 km (5 mi)` |
 | `under_40_km` | `8.0 <= d < 40.0` | `Under 40 km (25 mi)` |
 
-A pair with `d >= 40.0` is **not an opportunity** and never appears in `GET /opportunities`.
+A pair with `d >= 40.0` is **not an opportunity** and never appears in `GET /opportunities` or `GET /reference/opportunities`.
 
 A distance of `0.000` km, or any value within the touching tolerance, is **valid output**. It is not an error and must not be filtered, clamped, or flagged as suspicious.
 
@@ -241,7 +245,9 @@ Rules:
 
 `count` must equal `10`. `endpoint_only_count` must equal `4` for the official dataset. The `dataset_version` example shows format only; the SHA is the git blob SHA of the served dataset file.
 
-**Target dataset and the approved-only rule.** The target dataset is `data/official/projects_official.json`, added by PR #8. It counts as the approved dataset **only after PR #8 clears independent audit and merges**. Until then, no environment may serve it as approved. This path change does not relax the approved-only rule and does not change the 40 km threshold. `data/approved/projects_approved.geojson` belongs to the conservative pipeline and is not the target of this contract.
+**Target dataset and the approved-only rule.** The reference dataset is `data/official/projects_official.json`, added by PR #8. Two gates are distinct: **dataset-level audit acceptance** (PR #8 clearing independent audit and merging) and **per-geometry human approval**. Merging PR #8 accepts the file as the published-coordinate reference dataset. It approves no geometry or pair, and it does not reclassify any coordinate-derived pair as a human-approved opportunity. `GET /opportunities` remains gated on per-geometry human approval and returns only approved results. With no approved geometries, its `data` array is empty. The 40 km threshold is unchanged. `data/approved/projects_approved.geojson` belongs to the conservative pipeline and is not the reference dataset.
+
+**Approved versus reference.** `GET /opportunities` serves approved results only. The coordinate-derived pairs computed from the reference dataset are **reference candidates**. They are served only by `GET /reference/opportunities` (§5.7), never by `GET /opportunities`, and are never presented as approved. Former contract gap G-1 is RESOLVED IN REVISION 2.2.1 by §5.7.
 
 ### 4.5 Ordering
 
@@ -313,7 +319,7 @@ Rules:
 - `tier_confidence` is `reduced` exactly when `is_endpoint_only_estimate` is `true`.
 - `shared_endpoint_detected` and `shared_endpoint_name` follow `GEOMETRY_MATH.md` §7.
 - `shared_endpoint_name` is one concatenated string built from dataset labels verbatim, for example `"Thurmond Sub / THURMOND DAM #5"`. The API has no separate per-utility name fields for it, and clients must never split it. The backend applies no case normalization.
-- When `shared_endpoint_detected` is `true`, `coordination_tier` is `touching_crossing` and `coordination_tier_label` is exactly `Shared endpoint facility`.
+- When `shared_endpoint_detected` is `true`, `coordination_tier` is `touching_crossing` and `coordination_tier_label` is exactly `Endpoints published at the same coordinates`.
 - `closest_distance_mi` is converted from the full-precision km value and then rounded. It is never converted from the rounded km value.
 - Example values in this table show format only. They are not project data.
 
@@ -345,7 +351,7 @@ Rules:
 
 ### 5.6 Expected result set
 
-With the official 10-project dataset, the unfiltered response must contain exactly these six `opportunity_id` values, in the order §5.5 produces:
+With the official 10-project dataset, the unfiltered `GET /reference/opportunities` response must contain exactly these six `opportunity_id` values, in the order §5.5 produces:
 
 | `opportunity_id` |
 |---|
@@ -356,9 +362,32 @@ With the official 10-project dataset, the unfiltered response must contain exact
 | `DESC_5__GPC_2` |
 | `DESC_5__GPC_3` |
 
-`DESC_4`, `GPC_4`, and `GPC_5` must not appear in any opportunity.
+`DESC_4`, `GPC_4`, and `GPC_5` must not appear in any reference candidate or approved opportunity.
+
+`GET /opportunities` contains only human-approved results. While no geometry is approved, it returns `200` with the §5.2 envelope and `data: []`.
 
 If the engine produces a different set, the engine or the data is wrong. Do not change thresholds, formulas, or constants to force this set. See `EDGE_CASES.md` §10.
+
+### 5.7 `GET /reference/opportunities` (reference candidates)
+
+Added in Revision 2.2.1. Resolves former contract gap G-1.
+
+| Item | Value |
+|---|---|
+| Method | `GET` |
+| Path | `/reference/opportunities` |
+| Query parameters | `project_id` only, with the same type and rules as §5.1. Example: `GET /reference/opportunities?project_id={id}` |
+| Request body | None |
+| Success | `200 OK` with the §5.2 envelope: `{"data": [Opportunity, ...], "meta": OpportunitiesMeta}`. Items are exactly §5.3, with nothing renamed or added. `meta` fields keep their §5.4 meanings (including `count`, `total_count`, `dataset_version`, and `filter_project_id`), computed over the reference set. No reference-specific metadata fields exist |
+| Empty result | `200 OK` with `data: []` and a valid `meta`. This includes a `project_id` that matches no reference candidate |
+| Errors | Identical to §6, including the §6.1 error body |
+
+Rules:
+- Items are computed by the official reference engine from the published-coordinate reference dataset `data/official/projects_official.json`.
+- Items are coordinate-derived **reference candidates**. No response, UI, document, or demo may describe them as approved results, confirmed overlaps, genuine touches, or shared facilities.
+- `project_id` filtering mirrors `GET /opportunities?project_id`: same validation, same `400` error codes, and returned items keep the `rank` values from the unfiltered reference set.
+- Ordering and `rank` follow §5.5, computed over the unfiltered reference set.
+- This route does not change `GET /projects` or `GET /opportunities`.
 
 ---
 
@@ -392,10 +421,10 @@ Every non-2xx response uses this body:
 
 | HTTP status | `error.code` | When |
 |---|---|---|
-| 400 | `invalid_query_parameter` | Any unknown query parameter on `/opportunities`, or any query parameter on `/projects` |
+| 400 | `invalid_query_parameter` | Any unknown query parameter on `/opportunities` or `/reference/opportunities`, or any query parameter on `/projects` |
 | 400 | `invalid_project_id` | `project_id` is not one of the 10 values in §2.2 |
 | 404 | `not_found` | Unknown route |
-| 405 | `method_not_allowed` | Any method other than `GET` on `/projects` or `/opportunities`. The response includes the header `Allow: GET` |
+| 405 | `method_not_allowed` | Any method other than `GET` on `/projects`, `/opportunities`, or `/reference/opportunities`. The response includes the header `Allow: GET` |
 | 500 | `internal_error` | Unhandled server error |
 | 503 | `data_unavailable` | Only the three reasons in §6.3 |
 
@@ -422,14 +451,14 @@ The backend must not serve partial data when a `503` condition exists.
 
 ## 7. Worked example: one real opportunity
 
-This example uses the real qualifying pair **DESC_2 + GPC_1**. In the official dataset, DESC_2 is `endpoint_only` with its known endpoint labeled `Thurmond Sub`. GPC_1 has two known endpoints (`endpoint_pair`), and its endpoint B is labeled `THURMOND DAM #5`, at the same coordinates as DESC_2's known endpoint. The pair therefore collides at approximately 0 km. That is a **shared-facility finding**, not an unqualified line crossing. Its absolute date gap is **3074 days**.
+This example uses the real reference candidate **DESC_2 + GPC_1**. In the official dataset, DESC_2 is `endpoint_only` with its known endpoint labeled `Thurmond Sub`. GPC_1 has two known endpoints (`endpoint_pair`), and its endpoint B is labeled `THURMOND DAM #5`, at the same coordinates as DESC_2's known endpoint. The pair therefore collides at approximately 0 km. That is a **proximity candidate from coincident published coordinates**, not an unqualified line crossing. Its absolute date gap is **3074 days**.
 
 Fields marked `«golden»` are bound to the committed golden fixture `backend/tests/fixtures/golden/opportunity_DESC_2__GPC_1.json`. Agent 1 generates that fixture from the target dataset after the distance-model ruling is implemented. This spec does not populate those values.
 
 Request:
 
 ```http
-GET /opportunities?project_id=GPC_1 HTTP/1.1
+GET /reference/opportunities?project_id=GPC_1 HTTP/1.1
 Accept: application/json
 ```
 
@@ -448,7 +477,7 @@ Response `200 OK`. Only the `DESC_2__GPC_1` item is shown. The live response als
       "center_distance_km": «golden»,
       "center_distance_mi": «golden»,
       "coordination_tier": "touching_crossing",
-      "coordination_tier_label": "Shared endpoint facility",
+      "coordination_tier_label": "Endpoints published at the same coordinates",
       "tier_confidence": "reduced",
       "shared_endpoint_detected": true,
       "shared_endpoint_name": "Thurmond Sub / THURMOND DAM #5",
@@ -489,7 +518,7 @@ Binding values that do not depend on fixture numbers:
 | `gpc_project_id` | `"GPC_1"` |
 | `closest_distance_km` | `<= 0.001` |
 | `coordination_tier` | `"touching_crossing"` |
-| `coordination_tier_label` | `"Shared endpoint facility"` |
+| `coordination_tier_label` | `"Endpoints published at the same coordinates"` |
 | `tier_confidence` | `"reduced"` |
 | `shared_endpoint_detected` | `true` |
 | `shared_endpoint_name` | `"Thurmond Sub / THURMOND DAM #5"` |
@@ -507,9 +536,10 @@ Rendered UI for this item, per F12:
 
 | Element | Rendered text |
 |---|---|
-| Headline | `Shared endpoint facility: Thurmond Sub / THURMOND DAM #5` |
+| Headline | `Proximity candidate: endpoints published at the same coordinates` |
+| Name line | `Thurmond Sub / THURMOND DAM #5` |
 | Callout body | `Both filings name an endpoint that resolves to the same location, published as Thurmond Sub / THURMOND DAM #5. GridLock cannot confirm from public sources whether these are one shared site or separate facilities nearby. Both utilities would need to confirm.` |
-| Tier text | `Shared endpoint facility` (from `coordination_tier_label`) |
+| Tier text | `Endpoints published at the same coordinates` (from `coordination_tier_label`) |
 | Confidence badge | `Reduced confidence` |
 
 ---
@@ -531,23 +561,23 @@ These rules are mandatory for every UI agent.
 | F9 | Render `endpoint_only` projects as point markers with the badge `Endpoint only — route unknown` |
 | F10 | When `is_endpoint_only_estimate` is `true`, show the note `Distance measured to the one known endpoint` next to the distance |
 | F11 | When `tier_confidence` is `reduced`, show the badge `Reduced confidence` next to the tier label |
-| F12 | When `shared_endpoint_detected` is `true`, present the item as a shared-facility finding using exactly this copy, with `{shared_endpoint_name}` replaced by the payload value unchanged. Headline: `Shared endpoint facility: {shared_endpoint_name}`. Callout body: `Both filings name an endpoint that resolves to the same location, published as {shared_endpoint_name}. GridLock cannot confirm from public sources whether these are one shared site or separate facilities nearby. Both utilities would need to confirm.` Never label the item `Crossing` or `Touching / crossing` |
+| F12 | When `shared_endpoint_detected` is `true`, present the item as a proximity candidate using exactly this copy, with `{shared_endpoint_name}` replaced by the payload value unchanged. Headline: `Proximity candidate: endpoints published at the same coordinates`. Name line: `{shared_endpoint_name}`. Callout body: `Both filings name an endpoint that resolves to the same location, published as {shared_endpoint_name}. GridLock cannot confirm from public sources whether these are one shared site or separate facilities nearby. Both utilities would need to confirm.` Never label the item `Crossing` or `Touching / crossing` |
 | F13 | Show `0.000 km` distances as returned. Never hide, flag as an error, or replace a zero distance |
 | F14 | Label center distance as secondary (`Center-to-center`) and never use it as the headline distance |
-| F15 | When `data` is an empty array, show the empty state defined in `EDGE_CASES.md` §8. Do not show an error |
+| F15 | When `data` is an empty array, show the matching empty state in `EDGE_CASES.md` §8: §8.1–§8.2 for reference candidates, §8.4 for approved results. Do not show an error |
 | F16 | On any error body, show `error.message`. Never show raw JSON or stack traces |
 | F17 | Never call Overpass, Nominatim, or any geocoder or routing service |
 | F18 | Never hard-code project coordinates, distances, tiers, or the expected pair list in the frontend |
 | F19 | Display distances with the 3 decimals returned. Do not re-round, truncate, or reformat numeric precision |
 | F20 | Show `data_warnings` in the project detail panel as plain informational text. Never treat them as errors |
-| F21 | **Tier label authority.** Render `coordination_tier_label` from the payload as the only tier display text. Never derive tier display text on the client from the `coordination_tier` string value. That means no object literal keyed by tier strings, no `switch`/`case` on the value, no `if`/`else` or ternary chain comparing it to tier strings, and no translation or string-resource lookup keyed by it. There is no i18n layer on main, so the translation clause is precautionary. This payload label overrides any value-to-text mapping in any other specification. It is what keeps `Touching / crossing` and `Touching or crossing` off shared-endpoint pairs |
+| F21 | **Tier label authority.** Render `coordination_tier_label` from the payload as the only tier display text. Never derive tier display text on the client from the `coordination_tier` string value. That means no object literal keyed by tier strings, no `switch`/`case` on the value, no `if`/`else` or ternary chain comparing it to tier strings, and no translation or string-resource lookup keyed by it. The only exception is visual style tokens (color, stroke, width, dash, pattern) produced in `frontend/src/opportunities/opportunityAdapter.js`; see the A35 allowlist. That file never derives, stores, translates, or replaces display text. There is no i18n layer on main, so the translation clause is precautionary. This payload label overrides any value-to-text mapping in any other specification. It is what keeps `Touching / crossing` and `Touching or crossing` off shared-endpoint pairs |
 | F22 | Never split, parse, or reformat `shared_endpoint_name`. Insert the whole string where the F12 copy shows `{shared_endpoint_name}` |
 
 ---
 
 ## Acceptance checks
 
-A QA agent must run all of these against a live backend loaded with the target dataset, plus the frontend where stated.
+A QA agent must run all of these against a live backend loaded with the target dataset, plus the frontend where stated. Checks that say "every item" apply to items from both `GET /opportunities` and `GET /reference/opportunities`.
 
 | # | Check | Pass condition |
 |---|---|---|
@@ -561,62 +591,68 @@ A QA agent must run all of these against a live backend loaded with the target d
 | A8 | Zero-length flag | `is_zero_length_segment` is `true` exactly when a `LineString` has two identical positions |
 | A9 | GeoJSON order | Every `geometry` position equals `[location.lon, location.lat]` of its known endpoint |
 | A10 | Zero-opportunity projects | `DESC_4`, `GPC_4`, `GPC_5` have `opportunity_count == 0` |
-| A11 | `GET /opportunities` | `200`, `meta.count == 6`, `meta.total_count == 6` |
-| A12 | Pair set | The set of `opportunity_id` values equals the six in §5.6 exactly |
-| A13 | Excluded projects | No opportunity references `DESC_4`, `GPC_4`, or `GPC_5` |
+| A11 | `GET /reference/opportunities` and `GET /opportunities` | `GET /reference/opportunities` returns `200`, `meta.count == 6`, `meta.total_count == 6`. `GET /opportunities` returns `200` with the §5.2 envelope and, while no geometry is human-approved, `data == []` |
+| A12 | Pair set | The set of `opportunity_id` values in `GET /reference/opportunities` equals the six in §5.6 exactly |
+| A13 | Excluded projects | No reference candidate or approved opportunity references `DESC_4`, `GPC_4`, or `GPC_5` |
 | A14 | Gate | Every `closest_distance_km < 40.0` |
 | A15 | Tier consistency | Every `coordination_tier` matches §2.4 applied to the returned `closest_distance_km`. When the returned value is exactly `0.001`, `1.600`, `8.000`, or `40.000`, the engine unit test on the full-precision value is authoritative instead |
-| A16 | Tier label | Every `coordination_tier_label` equals the exact §2.4 backend label, using `Shared endpoint facility` when `shared_endpoint_detected` is `true` |
+| A16 | Tier label | Every `coordination_tier_label` equals the exact §2.4 backend label, using `Endpoints published at the same coordinates` when `shared_endpoint_detected` is `true` |
 | A17 | Tier confidence | `tier_confidence == "reduced"` exactly when either side is `endpoint_only`; otherwise `"high"` |
 | A18 | Shared endpoint fields | `shared_endpoint_name` is `null` exactly when `shared_endpoint_detected` is `false` |
-| A19 | DESC_2 + GPC_1 finding | Item has `closest_distance_km <= 0.001`, `coordination_tier == "touching_crossing"`, `coordination_tier_label == "Shared endpoint facility"`, `shared_endpoint_detected == true`, `shared_endpoint_name == "Thurmond Sub / THURMOND DAM #5"`, `tier_confidence == "reduced"`, `distance_basis == "point_to_segment"`, `pair_geometry_confidence == "mixed"`, `date_gap_days == 3074` |
+| A19 | DESC_2 + GPC_1 finding | The `DESC_2__GPC_1` item in `GET /reference/opportunities` has `closest_distance_km <= 0.001`, `coordination_tier == "touching_crossing"`, `coordination_tier_label == "Endpoints published at the same coordinates"`, `shared_endpoint_detected == true`, `shared_endpoint_name == "Thurmond Sub / THURMOND DAM #5"`, `tier_confidence == "reduced"`, `distance_basis == "point_to_segment"`, `pair_geometry_confidence == "mixed"`, `date_gap_days == 3074` |
 | A20 | Mile field | For every item, `abs(closest_distance_mi − closest_distance_km / 1.609344) <= 0.001`, and the same for center distance |
 | A21 | Center ≥ closest | For every item, `center_distance_km >= closest_distance_km − 0.001` |
 | A22 | Connector | `closest_connector.coordinates` equals the closest-point pair in DESC-then-GPC order, as `[lon, lat]` |
-| A23 | Ranking | Items are sorted by the three-key rule in §5.5 and `rank` runs `1..6` with no gaps |
-| A24 | Filter | `GET /opportunities?project_id=GPC_1` returns exactly `DESC_1__GPC_1` and `DESC_2__GPC_1`, with unchanged `rank` values, `meta.count == 2`, `meta.total_count == 6` |
-| A25 | Filter on zero project | `GET /opportunities?project_id=DESC_4` returns `200`, `data == []`, `meta.count == 0`, `meta.total_count == 6` |
-| A26 | Invalid project | `GET /opportunities?project_id=DESC_9` returns `400`, `error.code == "invalid_project_id"` |
-| A27 | Unknown parameter | `GET /opportunities?tier=x` and `GET /projects?x=1` return `400 invalid_query_parameter` |
-| A28 | Method | `POST /opportunities` returns `405 method_not_allowed` with header `Allow: GET` |
+| A23 | Ranking | `GET /reference/opportunities` items are sorted by the three-key rule in §5.5 and `rank` runs `1..6` with no gaps |
+| A24 | Filter | `GET /reference/opportunities?project_id=GPC_1` returns exactly `DESC_1__GPC_1` and `DESC_2__GPC_1`, with unchanged `rank` values, `meta.count == 2`, `meta.total_count == 6` |
+| A25 | Filter on zero project | `GET /reference/opportunities?project_id=DESC_4` returns `200`, `data == []`, `meta.count == 0`, `meta.total_count == 6` |
+| A26 | Invalid project | `GET /opportunities?project_id=DESC_9` and `GET /reference/opportunities?project_id=DESC_9` return `400`, `error.code == "invalid_project_id"` |
+| A27 | Unknown parameter | `GET /opportunities?tier=x`, `GET /reference/opportunities?tier=x`, and `GET /projects?x=1` return `400 invalid_query_parameter` |
+| A28 | Method | `POST /opportunities` and `POST /reference/opportunities` return `405 method_not_allowed` with header `Allow: GET` |
 | A29 | Unknown route | `GET /nope` returns `404 not_found` with the §6.1 shape |
 | A30 | `503` scope | Only the three §6.3 reasons produce `503`. A dataset with `endpoint_only` projects and a zero-length segment returns `200` |
 | A31 | Determinism | Two consecutive calls return identical bodies after removing `meta.generated_at` |
-| A32 | Golden fixture | The `DESC_2__GPC_1` item equals the `opportunity` object in `backend/tests/fixtures/golden/opportunity_DESC_2__GPC_1.json` field for field |
-| A33 | No runtime lookups | With outbound network blocked, both routes still return `200` with identical bodies |
+| A32 | Golden fixture | The `DESC_2__GPC_1` item from `GET /reference/opportunities` equals the `opportunity` object in `backend/tests/fixtures/golden/opportunity_DESC_2__GPC_1.json` field for field |
+| A33 | No runtime lookups | With outbound network blocked, all three routes still return `200` with identical bodies |
 | A34 | No CEII | No response key or value contains CEII fields or data |
-| A35 | Frontend label source | All three searches below return zero matches in non-test `.js`/`.jsx`/`.mjs`/`.cjs` files under `frontend/src` |
-| A36 | Shared-endpoint card copy | The DESC_2 + GPC_1 card shows exactly the §7 headline and callout body, and neither `Touching / crossing` nor `Touching or crossing` appears anywhere on it |
+| A35 | Frontend label source | Step 0 outputs exactly `frontend/src/opportunities/opportunityAdapter.js`, and all three searches below return zero matches in non-test `.js`/`.jsx`/`.mjs`/`.cjs` files under `frontend/src`. The allowlisted file is excluded from Searches 1 and 2 only. Search 3 has no exclusion. If the adapter does not exist yet, A35 is BLOCKED or NOT YET RUN, never passed |
+| A36 | Shared-endpoint card copy | The DESC_2 + GPC_1 card shows exactly the §7 headline, name line, and callout body, and neither `Touching / crossing` nor `Touching or crossing` appears anywhere on it |
 | A37 | Label mutation test | With a stubbed payload where `coordination_tier = "under_8_km"` and `coordination_tier_label = "QA-LABEL-SENTINEL"`, the UI shows `QA-LABEL-SENTINEL`. This proves the label is not derived from the `coordination_tier` value |
 | A38 | No name splitting | With a stubbed `shared_endpoint_name = "A / B / C"`, the headline and callout show `A / B / C` unchanged |
 
 ### A35 searches
 
+Step 0 — confirm the allowlist glob matches exactly the approved file. The output must be exactly `frontend/src/opportunities/opportunityAdapter.js`. If that file does not exist yet, report Step 0, and therefore A35, as BLOCKED or NOT YET RUN. It is never recorded as passed in that case:
+
+```sh
+rg --files -g '**/opportunities/opportunityAdapter.js' frontend/src
+```
+
 Search 1 — tier value literals in non-test source. Catches object-literal maps (the keys are literals), `switch`/`case` on the value, and ternary or `if` chains comparing to literals:
 
 ```sh
-rg -n -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' -e 'touching_crossing' -e 'under_1_6_km' -e 'under_8_km' -e 'under_40_km' frontend/src
+rg -n -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' -g '!**/opportunities/opportunityAdapter.js' -e 'touching_crossing' -e 'under_1_6_km' -e 'under_8_km' -e 'under_40_km' frontend/src
 ```
 
 Search 2 — any read of the raw `coordination_tier` value. Also catches values built from string pieces:
 
 ```sh
-rg -nP -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' 'coordination_tier(?!_label)' frontend/src
+rg -nP -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' -g '!**/opportunities/opportunityAdapter.js' 'coordination_tier(?!_label)' frontend/src
 ```
 
 Fallback when ripgrep lacks PCRE2:
 
 ```sh
-rg -n -o -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' 'coordination_tier\w*' frontend/src | grep -v ':coordination_tier_label$'
+rg -n -o -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' -g '!**/opportunities/opportunityAdapter.js' 'coordination_tier\w*' frontend/src | grep -v ':coordination_tier_label$'
 ```
 
-Search 3 — hardcoded tier display strings. `Shared endpoint facility` is deliberately excluded because the F12 headline legitimately contains it:
+Search 3 — hardcoded tier display strings. Applies to every file, including the allowlisted adapter:
 
 ```sh
 rg -n -g '*.{js,jsx,mjs,cjs}' -g '!**/*.test.*' -g '!**/test/**' -g '!**/__tests__/**' -e 'Touching / crossing' -e 'Touching or crossing' -e 'Under 1\.6 km' -e 'Under 8 km' -e 'Under 40 km' frontend/src
 ```
 
-Any tier-based styling in the UI requires an approved allowlist entry before Search 2 may return a match. A37 is the behavioral backstop for anything a text search can miss.
+**A35 allowlist (exactly one path):** `frontend/src/opportunities/opportunityAdapter.js`. This file alone may contain the `coordination_tier` value literals, read the raw `coordination_tier` value, and map it to visual style tokens (color, stroke, width, dash, pattern). It may not derive, store, translate, or replace display text, and may not compute distances, thresholds, or tiers. Every visible tier label renders `coordination_tier_label` verbatim. Searches 1 and 2 exclude this file. Search 3 applies to every file, including this one. No other allowlist entry exists. A37 is the behavioral backstop for anything a text search can miss.
 
 ---
 
@@ -635,6 +671,6 @@ This appendix describes **unmerged PR #8** (`backend/gridlock/official_engine.py
 | M7 | Date gap field | `day_gap` (absolute) | `date_gap_days` and `date_gap_days_signed` | Low |
 | M8 | Sort key | Rounded `distance_m`, then IDs | Full-precision km, then `date_gap_days`, then `opportunity_id` | Medium |
 | M9 | Shared-endpoint and confidence fields | Absent | `shared_endpoint_detected`, `shared_endpoint_name`, `tier_confidence` | Medium |
-| M10 | DESC_2 + GPC_1 wording | Tier `crossing`; PR #8's `docs/OFFICIAL_DATASET_ENGINE.md` describes a shared physical endpoint as a genuine touch | Label `Shared endpoint facility`; callout says GridLock cannot confirm one site versus separate nearby facilities | Flagged to P1; that document belongs to Agent 1 |
+| M10 | DESC_2 + GPC_1 wording | Tier `crossing`; PR #8's `docs/OFFICIAL_DATASET_ENGINE.md` describes a shared physical endpoint as a genuine touch | Label `Endpoints published at the same coordinates`; callout says GridLock cannot confirm one site versus separate nearby facilities | Flagged to P1; that document belongs to Agent 1 |
 
 Distance model: PR #8 computes planar distance in EPSG:32617 (UTM 17N) via pyproj and shapely. The ruled target model finds closest points that way and reports the WGS 84 geodesic between them; the geodesic step belongs to the integration PR (see `GEOMETRY_MATH.md` banner and Blocker 3).
