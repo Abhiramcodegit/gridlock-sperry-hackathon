@@ -195,6 +195,40 @@ Full setup guide with troubleshooting: [`docs/SETUP.md`](docs/SETUP.md)
 
 ---
 
+## Screenshots
+
+> Placeholders — drop images into `docs/img/` and update the paths below.
+
+| View | Screenshot |
+|---|---|
+| Map with both utilities' projects | `![Map overview](docs/img/map-overview.png)` _(placeholder)_ |
+| Flagged overlap with closest-point segment | `![Overlap segment](docs/img/overlap-segment.png)` _(placeholder)_ |
+| Ranked opportunity list | `![Ranked list](docs/img/ranked-list.png)` _(placeholder)_ |
+| Evidence drawer / provenance | `![Evidence drawer](docs/img/evidence-drawer.png)` _(placeholder)_ |
+
+---
+
+## Source Attribution
+
+GridLock uses **publicly available filings only — no CEII, no private data.**
+Full provenance in [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md).
+
+| Source | Publisher | Used for |
+|---|---|---|
+| `Projects_Overlaps.xlsx` (challenge package) | Sperry Tech Challenge | Canonical starter dataset + overlap answer key (10 projects, 6 overlaps) |
+| Dominion 2024–2028 $2M+ project descriptions PDF | Dominion Energy South Carolina | DESC project details, in-service dates, and cost anchors |
+| 2025 IRP Volume 3 Public Disclosure PDF | Georgia Power | GPC transmission projects |
+| SCRTP Stakeholder Meeting Presentation (2025-03-05) | SCRTP | DESC pipeline records (`DESC-*`) |
+| Transmission Expansion & Upgrades page | Georgia Power | GPC pipeline records (`GPC-*`) |
+| OpenStreetMap (`power=substation` / `power=line`) | OpenStreetMap contributors (ODbL) | Public substation geometry / proxy points |
+
+Methodology and cost framing:
+[`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) ·
+[`docs/COST_ESTIMATE.md`](docs/COST_ESTIMATE.md) ·
+[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)
+
+---
+
 ## Phase Status
 
 | Phase | Name | Status |
@@ -285,8 +319,16 @@ Full workflow spec: [`project-docs/WORKFLOW.md`](project-docs/WORKFLOW.md)
 
 ## Documentation
 
-- **[`docs/DEMO_FLOW.md`](docs/DEMO_FLOW.md)** — 2–3 minute demo script, including
-  the presenter warning against calling the proxies verified routes.
+- **[`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md)** — every dataset traced
+  to a public source; geometry derivation; `endpoint_only` limits; no-CEII statement.
+- **[`docs/METHODOLOGY.md`](docs/METHODOLOGY.md)** — 40 km threshold, closest-point
+  ranking, in-service-date gap, the 4-tier coordination model.
+- **[`docs/COST_ESTIMATE.md`](docs/COST_ESTIMATE.md)** — cost anchors and the
+  clearly-labeled illustrative savings framing (not verified savings).
+- **[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)** — 90-second and 3-minute demo
+  scripts with the two corridor walkthroughs.
+- **[`docs/DEMO_FLOW.md`](docs/DEMO_FLOW.md)** — 2–3 minute demo script for the
+  pipeline track, with the presenter warning against calling the proxies verified routes.
 - **[`AGENT_STATUS.md`](AGENT_STATUS.md)** — live multi-agent status board.
 - [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md) — deterministic PostGIS engine + CI verification.
 - [`docs/PROXY_DISTANCE_RESULT.md`](docs/PROXY_DISTANCE_RESULT.md) — the 116.993 km honest negative.
