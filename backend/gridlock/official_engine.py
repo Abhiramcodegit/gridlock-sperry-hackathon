@@ -1,7 +1,9 @@
-"""Overlap engine for the official challenge dataset (data/official).
+"""Reference-candidate engine for the official challenge dataset (data/official).
 
 Deterministic, offline. Compares every DESC project to every GPC project
-(5 x 5 = 25 pairs) and returns ranked coordination opportunities.
+(5 x 5 = 25 pairs) and returns ranked cross-utility REFERENCE CANDIDATES:
+proximity-screened pairs that flag a possible coordination opportunity for the
+two utilities to confirm. They are candidates, not confirmed overlaps.
 
 Spec:
   - Primary metric : closest-point distance between full geometries
@@ -14,7 +16,7 @@ Spec:
         < 1.6 km             -> shared right-of-way / access / permits
         < 8 km               -> shared laydown yards / deliveries
         < 40 km              -> shared crews / equipment
-  - Output: opportunities sorted by distance ascending.
+  - Output: reference candidates sorted by distance ascending.
 
 Distances are computed in a metric CRS (UTM 17N) via shapely; this matches the
 approach already used by gridlock.engine.
@@ -97,7 +99,9 @@ def day_gap(a: dict, b: dict) -> int | None:
 
 def find_opportunities(projects: list[dict]) -> list[dict]:
     """Compare every DESC project to every GPC project and return ranked
-    opportunities that pass the < 40 km inclusion gate.
+    reference candidates that pass the < 40 km inclusion gate. These are
+    proximity-screened candidate pairs for the utilities to confirm, not
+    confirmed overlaps.
 
     Utility grouping is by id prefix (DESC_* vs GPC_*), matching the official
     dataset. Output is sorted by distance ascending, then by id pair.
@@ -135,7 +139,7 @@ def find_opportunities(projects: list[dict]) -> list[dict]:
 
 if __name__ == "__main__":
     ops = find_opportunities(load_official_projects())
-    print(f"{len(ops)} qualifying opportunities (< 40 km):\n")
+    print(f"{len(ops)} qualifying reference candidates (< 40 km):\n")
     hdr = f"{'DESC':7} {'GPC':6} {'dist_km':>8} {'dist_mi':>8} {'gap_d':>6} {'tier':16} conf(desc/gpc)"
     print(hdr)
     print("-" * len(hdr))

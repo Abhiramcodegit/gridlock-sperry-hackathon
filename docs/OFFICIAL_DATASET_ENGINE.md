@@ -1,7 +1,8 @@
 # Official Challenge Dataset & Overlap Engine
 
 Canonical, offline pipeline for the 10 official challenge projects (5 DESC, 5 GPC)
-and the cross-utility overlap engine that ranks coordination opportunities.
+and the cross-utility engine that ranks proximity-screened **reference candidates**
+(candidate coordination pairs for the utilities to confirm, not confirmed overlaps).
 
 ## Source of truth
 
@@ -50,7 +51,7 @@ The sheet's `overlaps` sheet is used **only** as a regression oracle in tests
 `endpoint_only` projects: `DESC_1` (Hooks blank), `DESC_2` (Hooks blank),
 `DESC_4` (Ft Johnson blank), `GPC_2` (Purrysburg blank).
 
-## Overlap engine
+## Reference-candidate engine
 
 `backend/gridlock/official_engine.py`
 
@@ -64,7 +65,7 @@ The sheet's `overlaps` sheet is used **only** as a regression oracle in tests
   - < 1.6 km → shared right-of-way / access / permits
   - < 8 km → shared laydown yards / deliveries
   - < 40 km → shared crews / equipment
-- **Output:** opportunities ranked by distance ascending. Each carries
+- **Output:** reference candidates ranked by distance ascending. Each carries
   `distance_m/km/mi`, `day_gap`, `tier`, `coordination_action`, and per-project
   `confidence`.
 
@@ -74,7 +75,7 @@ Run it directly:
 python -m gridlock.official_engine
 ```
 
-## Computed opportunities (closest-point)
+## Computed reference candidates (closest-point)
 
 | rank | DESC | GPC | dist (km) | dist (mi) | day gap | tier | confidence (desc/gpc) |
 |---|---|---|---|---|---|---|---|
@@ -85,7 +86,7 @@ python -m gridlock.official_engine
 | 5 | DESC_5 | GPC_2 | 13.574 | 8.434 | 365 | shared_crews | two_endpoints / endpoint_only |
 | 6 | DESC_5 | GPC_3 | 14.225 | 8.839 | 730 | shared_crews | two_endpoints / two_endpoints |
 
-`DESC_4`, `GPC_4`, and `GPC_5` do not appear in any opportunity.
+`DESC_4`, `GPC_4`, and `GPC_5` do not appear in any reference candidate.
 
 ## Divergence from the reference sheet
 

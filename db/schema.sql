@@ -34,5 +34,6 @@ FROM projects a
 JOIN projects b
   ON a.utility < b.utility
  AND ST_DWithin(a.geom, b.geom, 40000)
+ AND ST_Distance(a.geom, b.geom) < 40000   -- strict gate parity: 40 km boundary excluded (matches engine + contract)
 WHERE a.review_status = 'approved' AND b.review_status = 'approved'
   AND a.geom IS NOT NULL AND b.geom IS NOT NULL;

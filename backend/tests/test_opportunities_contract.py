@@ -262,3 +262,75 @@ def test_http_invalid_project_id_400():
     r = client.get("/opportunities", params={"project_id": "desc_1"})
     assert r.status_code == 400
     assert r.json()["error"]["details"]["reason"] == "invalid_project_id"
+
+
+# --- 40 km gate boundary at the contract layer (strict; 40.0 km EXCLUDED) ---
+from pyproj import Geod as _Geod
+
+_GEOD = _Geod(ellps="WGS84")
+
+
+def _mk_project(pid, lon, lat):
+    """Minimal endpoint_only project at a single known point (synthetic)."""
+    return {
+        "id": pid,
+        "utility": "DESC" if pid.startswith("DESC_") else "GPC",
+        "project_name": f"synthetic {pid}",
+        "endpoint_a_name": "A", "endpoint_a_coords": [lon, lat],
+        "endpoint_b_name": None, "endpoint_b_coords": None,
+        "center_geometry": [lon, lat],
+        "in_service_date": "2027-06-01",
+        "geometry_confidence": "endpoint_only",
+        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+    }
+
+
+def _pair_at_geodesic_m(meters):
+    """Return (desc, gpc) endpoint_only projects exactly `meters` apart (WGS84)."""
+    lon0, lat0 = -81.0, 32.5
+    lon1, lat1, _ = _GEOD.fwd(lon0, lat0, 90.0, meters)  # due east
+    return _mk_project("DESC_9", lon0, lat0), _mk_project("GPC_9", lon1, lat1)
+
+
+class _VD:
+    """Stand-in ValidatedDataset for _evaluate_pair unit tests."""
+    def __init__(self, ids):
+        self.parsed_dates = {i: __import__("datetime").date(2027, 6, 1) for i in ids}
+
+
+def test_contract_gate_comparator_is_strict_at_40km():
+    # The gate is `closest_km_full < GATE_KM` (contract.py). Prove exactly
+    # 40.0 km is EXCLUDED and any value below is INCLUDED, independent of
+    # geodesic round-trip precision.
+    assert contract.GATE_KM == 40.0
+    assert not (40.0 < contract.GATE_KM)          # exactly 40.0 -> excluded
+    assert (39.999999 < contract.GATE_KM)         # just under -> included
+
+
+def test_contract_gate_includes_just_under_40000_m():
+    # A synthetic pair ~39.6 km apart qualifies with tier under_40_km.
+    d, g = _pair_at_geodesic_m(39600.0)
+    row = contract._evaluate_pair(d, g, _VD([d["id"], g["id"]]))
+    assert row is not None
+    assert row["closest_distance_km"] < 40.0
+    assert row["coordination_tier"] == "under_40_km"
+
+
+def test_contract_gate_excludes_over_40km_pair():
+    # A synthetic pair ~40.5 km apart is excluded (None).
+    d, g = _pair_at_geodesic_m(40500.0)
+    row = contract._evaluate_pair(d, g, _VD([d["id"], g["id"]]))
+    assert row is None
+
+
+def test_contract_rounding_km_3dp_half_up():
+    # 39.9995 km rounds half-up to 40.000 for display, but the gate uses the
+    # full-precision value (< 40.0) so the pair still qualifies (E13).
+    assert contract._round(39.9995, 3) == 40.0
+    assert contract._round(2.9925, 3) == 2.993       # half-up, not banker's
+    assert contract._round(0.0005, 3) == 0.001
+
+
+def test_contract_latlon_rounding_6dp():
+    assert contract._round(-81.12345649, 6) == -81.123456
+    assert contract._round(32.50000050, 6) == 32.500001  # half-up
