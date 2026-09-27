@@ -76,12 +76,17 @@ against the database.
 - `GET /opportunities` via FastAPI TestClient (file mode): returns `[]`, HTTP 200.
 - Schema SQL contains the required constructs (ST_DWithin 40000, ST_Distance,
   ST_ShortestLine, cross-utility join, temporal overlap, approved-only filter).
-- Live PostGIS run: pending GitHub Actions result. Once green, commit the
-  confirmed verification line here (template below).
+- Live PostGIS run: **verified green** — see confirmed record below.
 
-<!--
 Phase 3 PostGIS integration verified via GitHub Actions: pytest 24 passed,
 0 skipped (20 unit/proxy-distance + 4 DB integration against
-postgis/postgis:16-3.4). db.find_opportunities() -> [] against live PostGIS.
-Tested commit: <SHA>. CI run: <URL>. Verified: <YYYY-MM-DD>.
--->
+postgis/postgis:16-3.4).
+
+db.find_opportunities() -> [] against live PostGIS (correct — no approved
+geometry pair qualifies).
+
+Tested commit: 02752cb1edb4085c8e80a328deac637685af3def
+
+CI run: https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004
+
+Verified: 2026-09-27
