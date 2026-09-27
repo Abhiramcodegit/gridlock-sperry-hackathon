@@ -14,21 +14,23 @@ Frontend merge allowed: YES
 
 ### Agent 1 — Engine CI & Phase 3 verification
 
-Status: READY FOR REVIEW
+Status: READY FOR MERGE
 
-Branch: backend/geospatial-engine
+Branch: backend/geospatial-engine (held unchanged at verified baseline)
 
-Latest SHA: 02752cb (engine fix: ST_GeomFromGeoJSON()::geography)
+Latest SHA: 2eff3d0 (verification commit); engine fix 02752cb
 
 Files touched: AGENT_STATUS.md, docs/ENGINE_PHASE3.md, backend/gridlock/db.py
 
 Tests: 24 passed, 0 skipped (20 unit/proxy-distance + 4 DB integration). All 4 DB integration tests executed against live postgis/postgis:16-3.4 (not skipped). Verified via engine-ci run 36287891004.
 
-Blockers: none
+QA: Agent 5 issued PASS (run-attested) on 2eff3d0.
 
-Next step: none — Phase 3 CI is GREEN, Gate opened for frontend merge.
+Blockers: none. Awaiting explicit human merge authorization; will not merge without it.
 
-Last updated: 2026-09-27T02:15:59Z
+Next step: hold branch unchanged. Human to confirm run 36287891004 (conclusion success; head SHA 02752cb1edb4085c8e80a328deac637685af3def; 24 passed, 0 skipped; all 4 DB integration tests executed), then authorize merge.
+
+Last updated: 2026-09-27T02:54:08Z
 
 <!-- AGENT-1:END -->
 
