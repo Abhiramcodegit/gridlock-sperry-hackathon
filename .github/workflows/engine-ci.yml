@@ -1,0 +1,30 @@
+name: engine-ci
+
+on:
+  push:
+    branches: [backend/geospatial-engine]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridlock
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GRIDLOCK_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gridlock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install --prefer-binary -r backend/requirements.txt
+      - run: psql "$GRIDLOCK_DATABASE_URL" -f db/schema.sql
+      - run: cd backend && pytest -v

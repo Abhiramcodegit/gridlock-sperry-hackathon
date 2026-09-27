@@ -1,19 +1,74 @@
-import json, pathlib
+"""GridLock FastAPI app.
+
+/opportunities is PostGIS-backed when GRIDLOCK_DATABASE_URL is set: it runs the
+deterministic candidate query (ST_DWithin 40 km filter + ST_Distance on
+approved-geometry pairs). Ingestion of projects_proposed.csv happens ONCE at
+startup (see the startup handler / gridlock.migrate), not per request, so the
+endpoint is a read-only query. When no database is configured, it falls back to
+the file-based engine.
+
+An empty array is the correct answer when no approved pair passes the filter.
+"""
+import json
+import pathlib
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from .engine import Project, find_opportunities
-app = FastAPI(title="GridLock")
-DATA = pathlib.Path(__file__).resolve().parents[2] / "data" / "approved" / "projects_approved.geojson"
-def load():
-    if not DATA.exists(): return []
-    fc = json.loads(DATA.read_text()); out = []
-    for f in fc["features"]:
+
+from .engine import Project, find_opportunities as find_opportunities_file
+from . import db, migrate
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load proposed rows into PostGIS once at boot. No-op in file-only mode.
+    migrate.run()
+    yield
+
+
+app = FastAPI(title="GridLock", lifespan=lifespan)
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+APPROVED = ROOT / "data" / "approved" / "projects_approved.geojson"
+
+
+def _load_file_projects():
+    if not APPROVED.exists():
+        return []
+    fc = json.loads(APPROVED.read_text())
+    out = []
+    for f in fc.get("features", []):
         p = f["properties"]
-        out.append(Project(p["id"], p["utility"], p["name"], f["geometry"], p.get("geometry_confidence","unresolved"),
-                           review_status=p.get("review_status","proposed")))
+        out.append(Project(
+            p["id"], p["utility"], p["name"], f["geometry"],
+            p.get("geometry_confidence", "unresolved"),
+            review_status=p.get("review_status", "proposed"),
+        ))
     return out
+
+
 @app.get("/health")
-def health(): return {"ok": True}
+def health():
+    return {"ok": True, "backend": "postgis" if db.database_url() else "file"}
+
+
 @app.get("/projects")
-def projects(): return json.loads(DATA.read_text()) if DATA.exists() else {"type":"FeatureCollection","features":[]}
+def projects():
+    if APPROVED.exists():
+        return json.loads(APPROVED.read_text())
+    return {"type": "FeatureCollection", "features": []}
+
+
 @app.get("/opportunities")
-def opportunities(): return find_opportunities(load())
+def opportunities():
+    """Ranked cross-utility coordination opportunities.
+
+    PostGIS path when a database is configured; otherwise the file-based
+    deterministic engine. Returns [] when no approved pair qualifies.
+    """
+    if db.database_url():
+        # Read-only query. Ingestion happened at startup (see _startup_ingest
+        # / gridlock.migrate), not here.
+        with db.connect() as conn:
+            return db.find_opportunities(conn)
+    return find_opportunities_file(_load_file_projects())
