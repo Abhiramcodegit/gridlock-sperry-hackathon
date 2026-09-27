@@ -19,5 +19,13 @@ export default defineConfig({
   // and the production build transform maplibre v6 correctly.
   esbuild: { target: 'es2022' },
   optimizeDeps: { esbuildOptions: { target: 'es2022' } },
-  build: { target: 'es2022' }
+  build: { target: 'es2022' },
+  // Test-only configuration (Agent 3). Does not affect dev/build output.
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    css: false
+  }
 })
