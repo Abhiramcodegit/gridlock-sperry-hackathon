@@ -52,7 +52,21 @@ Status: NOT STARTED
 
 ### Agent 4 — Demo & documentation
 
-Status: NOT STARTED
+Status: READY FOR REVIEW
+
+Branch: docs/demo-flow (from base c8b5279)
+
+Latest SHA: see docs/demo-flow HEAD (recorded in the final report)
+
+Files touched: docs/DEMO_FLOW.md (new), README.md, AGENT_STATUS.md (Agent-4 section only)
+
+Claims awaiting verification: Phase 3 PostGIS CI verification is PENDING — docs state "Phase 3 PostGIS CI verification: pending" and will cite Agent 1's green engine-ci run URL + tested SHA once the Gate reads GREEN. The "24 passed, 0 skipped" CI figure is the expected count from docs/ENGINE_PHASE3.md and .github/workflows/engine-ci.yml, not yet confirmed against a real CI run (that confirmation is Agent 1's deliverable).
+
+Blockers: none for docs. Cannot mark Phase 3 verified until Agent 1 supplies the green run URL + SHA.
+
+Next step: on receiving Agent 1's green engine-ci URL + tested SHA, replace "pending" lines in README.md and docs/DEMO_FLOW.md with the cited run, then re-commit.
+
+Last updated: 2026-09-27
 
 <!-- AGENT-4:END -->
 

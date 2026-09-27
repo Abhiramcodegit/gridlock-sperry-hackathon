@@ -2,8 +2,9 @@
 
 > **Sperry Hackathon 2026 — Transmission Coordination Discovery Engine**
 
-[![Phase](https://img.shields.io/badge/phase-1%20source%20validation-yellow)](#phase-status)
-[![Tests](https://img.shields.io/badge/backend%20tests-17%2F17%20passing-brightgreen)](#backend)
+[![Phase](https://img.shields.io/badge/phase-3%20deterministic%20engine-yellow)](#phase-status)
+[![Tests](https://img.shields.io/badge/tests-24%20passed%2C%200%20skipped%20(CI)-brightgreen)](#tests)
+[![Phase 3 CI](https://img.shields.io/badge/Phase%203%20PostGIS%20CI-pending-lightgrey)](#tests)
 [![Security](https://img.shields.io/badge/npm%20audit-0%20high%2F0%20critical-brightgreen)](#security)
 
 GridLock finds opportunities for electric utilities to coordinate transmission construction projects — so they can share trenches, access roads, environmental permits, and contractor mobilization instead of paying for them twice.
@@ -89,45 +90,51 @@ Full rationale for every choice: [`project-docs/TECH_STACK.md`](project-docs/TEC
 
 ```
 gridlock-sperry-hackathon/
-├── README.md                        ← you are here
-├── .env.example                     ← copy to .env before running
-├── docker-compose.yml               ← spins up PostGIS
+├── README.md                            ← you are here
+├── AGENT_STATUS.md                      ← multi-agent status board
+├── .env.example                         ← copy to .env before running
+├── docker-compose.yml                   ← PostGIS + API
 ├── backend/
-│   ├── requirements.txt             ← pinned, wheels-only
+│   ├── requirements.txt                 ← pinned, wheels-only
+│   ├── Dockerfile
 │   ├── gridlock/
-│   │   ├── engine.py            ← deterministic distance/tier/score
-│   │   ├── api.py               ← FastAPI endpoints
-│   │   └── config.py            ← thresholds + scoring weights
+│   │   ├── engine.py                    ← deterministic distance/tier/score (file mode)
+│   │   ├── db.py                        ← PostGIS candidate query + ST_Distance
+│   │   ├── migrate.py                   ← one-time ingest CLI
+│   │   ├── api.py                       ← FastAPI endpoints
+│   │   └── config.py                    ← 40 km threshold + scoring weights
 │   └── tests/
-│       └── test_engine.py       ← 17 pytest tests (all passing)
+│       ├── test_engine.py               ← engine unit tests
+│       ├── test_proxy_distance_gpc004_desc003.py  ← 116.993 km negative result
+│       └── test_db_integration.py       ← PostGIS integration (skips without DB)
 ├── frontend/
-│   ├── package.json             ← pinned deps, security overrides
-│   ├── vite.config.js           ← localhost-only (security note inside)
-│   └── src/
-│       ├── App.jsx              ← map + sidebar + evidence drawer
-│       ├── main.jsx
-│       └── style.css
+│   ├── package.json                     ← pinned deps, security overrides
+│   ├── index.html
+│   ├── public/static/                   ← projects_approved.geojson, opportunities.json
+│   └── src/                             ← React + MapLibre app
 ├── db/
-│   └── schema.sql               ← PostGIS tables + spatial index
+│   └── schema.sql                       ← PostGIS tables, ST_DWithin/ST_Distance, spatial index
 ├── data/
-│   ├── approved_projects.csv    ← INTENTIONALLY EMPTY (awaiting Phase 1 approval)
-│   ├── SOURCE_MANIFEST.md       ← verified sources + extracted projects
-│   ├── VERIFICATION_LEDGER.md   ← per-source provenance audit
-│   ├── REJECTED_SOURCES.md      ← rejected/pending sources log
-│   └── hypotheses/              ← working hypotheses ONLY — NOT approved data
+│   ├── approved/
+│   │   └── projects_approved.geojson    ← INTENTIONALLY EMPTY (nothing promoted)
+│   ├── normalized/
+│   │   └── projects_proposed.csv        ← 34 proposed rows (19 DESC, 9 GPC, 6 hypotheses)
+│   ├── raw/                             ← captured source material (desc/, gpc/, osm/)
+│   ├── manifests/sources.json
+│   ├── provenance/verification_ledger.csv
+│   ├── SOURCE_MANIFEST.md               ← verified sources + extracted projects
+│   ├── VERIFICATION_LEDGER.md           ← per-source provenance audit
+│   └── REJECTED_SOURCES.md              ← rejected/pending sources log
 ├── docs/
-│   ├── SETUP.md                 ← step-by-step local setup
-│   ├── ARCHITECTURE_PROPOSAL.md
-│   ├── DATA_LIMITATIONS.md      ← what the dataset does/doesn’t contain
-│   ├── DECISION_LOG.md          ← every architectural decision + rationale
-│   ├── SECURITY_AUDIT.md        ← npm audit history + CVE decisions
-│   └── WORKSTREAM_STATUS.md
-└── project-docs/                    ← living documents (updated every phase)
-    ├── TECH_STACK.md
-    ├── DESIGN.md
-    ├── WORKFLOW.md
-    ├── PHASE_STATUS.md
-    └── GLOSSARY.md
+│   ├── SETUP.md                         ← step-by-step local setup
+│   ├── DEMO_FLOW.md                     ← 2–3 minute demo script
+│   ├── ENGINE_PHASE3.md                 ← deterministic PostGIS engine + CI verification
+│   ├── PROXY_DISTANCE_RESULT.md         ← GPC-004 ↔ DESC-003 = 116.993 km (honest negative)
+│   ├── DATA_LIMITATIONS.md              ← what the dataset does/doesn’t contain
+│   ├── DECISION_LOG.md                  ← architectural decisions + rationale
+│   ├── SECURITY_AUDIT.md                ← npm audit history + CVE decisions
+│   └── ...                              ← additional audit/status docs
+└── .github/workflows/engine-ci.yml      ← PostGIS integration tests on GitHub Actions
 ```
 
 ---
@@ -137,29 +144,51 @@ gridlock-sperry-hackathon/
 ### Prerequisites
 - Python 3.11, 3.12, or 3.13
 - Node 18+ (22.x recommended)
-- Docker Desktop
+- Docker Desktop (only for the PostGIS mode)
 
-### Backend
 ```bash
 git clone https://github.com/Abhiramcodegit/gridlock-sperry-hackathon
 cd gridlock-sperry-hackathon
-python -m venv .venv && source .venv/bin/activate
-pip install --prefer-binary -r backend/requirements.txt
-cd backend && pytest
 ```
 
-### Frontend
+### 1. Frontend dev server
 ```bash
 cd frontend
 npm install
-npm audit          # expect 0 high / 0 critical
-npm run dev        # http://localhost:5173
+npm audit                # expect 0 high / 0 critical
+npm run dev              # http://localhost:5173
 ```
 
-### Database
+### 2. API — file mode (no database)
+Uses the file-based deterministic engine. Reads
+`data/approved/projects_approved.geojson`, which is empty, so `/opportunities`
+returns `[]` — the correct answer until data is approved.
 ```bash
-cp .env.example .env
-docker compose up -d
+python -m venv .venv && source .venv/bin/activate
+pip install --prefer-binary -r backend/requirements.txt
+cd backend
+pytest                                   # 20 passed, 4 skipped (DB tests skip without a database)
+uvicorn gridlock.api:app --reload        # http://localhost:8000
+# GET /health        -> {"ok": true, "backend": "file"}
+# GET /opportunities -> []
+```
+
+### 3. API + PostGIS via docker compose
+Brings up `postgis/postgis:16-3.4` (applies `db/schema.sql`) and the API. The
+API ingests `data/normalized/projects_proposed.csv` once at startup, then serves
+the PostGIS-backed `/opportunities` query.
+```bash
+cp .env.example .env      # set POSTGRES_PASSWORD
+docker compose up --build
+# db  -> localhost:5432
+# api -> localhost:8000  (GET /health -> {"ok": true, "backend": "postgis"})
+```
+
+To run the PostGIS integration tests directly (matches CI):
+```bash
+docker compose up -d db
+export GRIDLOCK_DATABASE_URL=postgresql://postgres:$POSTGRES_PASSWORD@localhost:5432/gridlock
+cd backend && pytest                     # 24 passed, 0 skipped (with a live database)
 ```
 
 Full setup guide with troubleshooting: [`docs/SETUP.md`](docs/SETUP.md)
@@ -168,25 +197,62 @@ Full setup guide with troubleshooting: [`docs/SETUP.md`](docs/SETUP.md)
 
 ## Phase Status
 
-| Phase | Name | Branch | Status |
-|---|---|---|---|
-| 0 | Scaffold | `backend/geospatial-engine` | ✅ Complete — PR #1 open |
-| 1 | Source Validation | `research/source-validation` | ⏳ In progress — PR #2 DRAFT |
-| 2 | Geometry + DB | TBD | ⏳ Blocked — awaiting Phase 1 approval |
-| 3 | Engine Integration | TBD | ⏳ Not started |
-| 4 | Demo Polish | TBD | ⏳ Not started |
+| Phase | Name | Status |
+|---|---|---|
+| 0 | Scaffold | ✅ Complete |
+| 1 | Source validation | ✅ 34 proposed rows captured with provenance |
+| 2 | Candidate geometry | ✅ GPC-004 + DESC-003 inferred proxies; honest 116.993 km negative |
+| 3 | Deterministic PostGIS engine | ⏳ Code complete; **Phase 3 PostGIS CI verification: pending** |
+| 4 | Demo & documentation | ⏳ In progress (this branch) |
 
-Detailed tracker: [`project-docs/PHASE_STATUS.md`](project-docs/PHASE_STATUS.md)
+Live multi-agent tracker: [`AGENT_STATUS.md`](AGENT_STATUS.md) ·
+engine details: [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md)
+
+## Tests
+
+Deterministic engine + integration suite:
+
+- **Local (no database):** 20 passed, 4 skipped — the 4 PostGIS integration
+  tests skip automatically when `GRIDLOCK_DATABASE_URL` is unset.
+- **CI (with PostGIS):** **24 passed, 0 skipped** — 17 engine + 3 proxy-distance
+  + 4 DB integration, run by
+  [`.github/workflows/engine-ci.yml`](.github/workflows/engine-ci.yml) against
+  `postgis/postgis:16-3.4`.
+
+The integration suite includes a **positive control** (a synthetic approved
+cross-utility pair under 40 km that must produce an opportunity), proving the
+empty production result is data-driven rather than a broken query.
+
+> **Phase 3 PostGIS CI verification: pending** — awaiting a green GitHub Actions
+> run URL and tested commit SHA. Do not treat the live PostGIS run as verified
+> until the status-board Gate reads GREEN.
 
 ---
 
-## Data Rules (Non-Negotiable)
+## Data & Provenance (current state)
+
+- **34 proposed records** in `data/normalized/projects_proposed.csv`: 19 DESC,
+  9 GPC, and 6 labeled hypotheses (`H-` rows). Every non-hypothesis row cites a
+  public source URL, title, date, and page.
+- **Approved dataset is empty.** `data/approved/projects_approved.geojson` is
+  `{"features":[]}`. Nothing has been promoted, so `/opportunities` returns `[]`.
+- **Only two rows carry geometry:** GPC-004 (West McIntosh substation proxy) and
+  DESC-003 (Church Creek substation proxy), both `inferred`. They are
+  **substation proxy points, not confirmed project routes**, which is why they
+  remain in the candidate layer and were not approved.
+- **DESC-002 (Okatie–McIntosh) is unresolved** — no defensible public coordinate
+  was found, so **no placeholder exists**, by design.
+- The two proxies are **116.993 km apart** (geodesic), outside the 40 km filter —
+  an honest negative result. See
+  [`docs/PROXY_DISTANCE_RESULT.md`](docs/PROXY_DISTANCE_RESULT.md).
+
+### Data rules (non-negotiable)
 
 1. **No CEII data.** No confidential, access-controlled, or restricted utility information.
 2. **Every project row requires a cited public URL** with publisher and date.
-3. **No coordinates without a public source.** All geometries start as `UNVERIFIED`.
-4. **Human approval required** before any row enters `approved_projects.csv` or the database.
-5. **Hypotheses are not data.** The `data/hypotheses/` folder contains working guesses for future research — they never appear in demo output or engine results.
+3. **No coordinates without a public source.** Inferred geometry is labeled `inferred`; unknowns stay `unresolved` with no placeholder.
+4. **Human approval required** before any row enters the approved set or the database.
+5. **Hypotheses are not data.** The `H-` rows are working guesses for future research — they are never presented as confirmed projects and never appear in engine results.
 
 ---
 
@@ -205,6 +271,16 @@ Neither AI makes data approval decisions. You do.
 Full workflow spec: [`project-docs/WORKFLOW.md`](project-docs/WORKFLOW.md)
 
 ---
+
+## Documentation
+
+- **[`docs/DEMO_FLOW.md`](docs/DEMO_FLOW.md)** — 2–3 minute demo script, including
+  the presenter warning against calling the proxies verified routes.
+- **[`AGENT_STATUS.md`](AGENT_STATUS.md)** — live multi-agent status board.
+- [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md) — deterministic PostGIS engine + CI verification.
+- [`docs/PROXY_DISTANCE_RESULT.md`](docs/PROXY_DISTANCE_RESULT.md) — the 116.993 km honest negative.
+- [`docs/DATA_LIMITATIONS.md`](docs/DATA_LIMITATIONS.md) — what the dataset does and doesn’t contain.
+- [`docs/SETUP.md`](docs/SETUP.md) — step-by-step local setup.
 
 ## Security
 
