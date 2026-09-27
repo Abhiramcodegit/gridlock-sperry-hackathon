@@ -169,9 +169,10 @@ describe('2. approved-empty opportunity state', () => {
     render(<App />)
 
     const empty = await screen.findByTestId('empty-state')
-    // Whitespace-tolerant match of the exact copy from App.jsx.
+    // Spec 2.2.1 §8.4 approved-only empty state (headline + body).
+    expect(empty).toHaveTextContent(/No approved coordination opportunities yet/i)
     expect(empty).toHaveTextContent(
-      /No approved coordination opportunities currently qualify\. Showing 2 proposed proxy locations for review; these are excluded from opportunity analysis\./i
+      /No project pair has completed per-geometry human approval\. Coordinate-derived reference candidates are listed separately\./i
     )
     // No opportunity list is rendered when there are no opportunities.
     expect(screen.queryByTestId('opportunity-list')).toBeNull()

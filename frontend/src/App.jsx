@@ -292,13 +292,17 @@ export default function App() {
           </ol>
         )}
 
-        {/* Honest empty state (verbatim copy relied upon by the test suite). */}
+        {/* Empty state — Spec 2.2.1 §8.4 approved-only view. Display copy only. */}
         {showEmptyState && (
-          <p className="empty" data-testid="empty-state">
-            No approved coordination opportunities currently qualify. Showing 2
-            proposed proxy locations for review; these are excluded from
-            opportunity analysis.
-          </p>
+          <div className="empty" data-testid="empty-state">
+            <p className="empty-headline" data-testid="empty-state-headline">
+              No approved coordination opportunities yet
+            </p>
+            <p className="empty-body" data-testid="empty-state-body">
+              No project pair has completed per-geometry human approval.
+              Coordinate-derived reference candidates are listed separately.
+            </p>
+          </div>
         )}
 
         {/* Candidate-review panel — proposed proxies, non-authoritative. */}
@@ -321,6 +325,13 @@ export default function App() {
               Candidate locations are for review and are not approved project
               geometries.
             </p>
+
+            {/* Spec 2.2.1 §8.1 empty state for the reference-candidate view. */}
+            {candidateFeatures.length === 0 && (
+              <p className="empty" data-testid="candidates-empty-state">
+                No cross-utility reference candidates found
+              </p>
+            )}
 
             <ul className="candidate-list">
               {candidateFeatures.map((c) => (
@@ -348,6 +359,21 @@ export default function App() {
         {sel && (
           <section className="drawer" data-testid="opportunity-detail">
             <h2>Evidence</h2>
+
+            {/* Shared-endpoint headline — Spec 2.2.1. Name MUST be on its own
+                line below the headline; never split the name. Frozen field:
+                shared_endpoint_name. Display only. */}
+            {sel.shared_endpoint_name && (
+              <div className="shared-endpoint" data-testid="shared-endpoint">
+                <p className="shared-endpoint-headline" data-testid="shared-endpoint-headline">
+                  Proximity candidate: endpoints published at the same coordinates
+                </p>
+                <p className="shared-endpoint-name" data-testid="shared-endpoint-name">
+                  {sel.shared_endpoint_name}
+                </p>
+              </div>
+            )}
+
             <p data-testid="distance-value">Closest-point distance: {(sel.distance_m / 1000).toFixed(3)} km</p>
             <p className="method" data-testid="distance-method">
               WGS 84 geodesic between the nearest points of the published
