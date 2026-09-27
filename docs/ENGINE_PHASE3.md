@@ -62,7 +62,7 @@ containers do not honor the docker-compose init-script mount), sets
 `GRIDLOCK_DATABASE_URL`, and runs `pytest -v`. A green run is the verification
 record.
 
-Expected on a green run: **24 passed, 0 skipped** (17 engine + 3 proxy-distance
+Expected on a green run: **24 passed, 0 skipped** (20 unit/proxy-distance
 + 4 DB integration).
 
 CI runs `pytest` only. The DB integration tests call `db.find_opportunities()`
