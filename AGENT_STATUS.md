@@ -60,8 +60,8 @@ Status: NOT STARTED
 
 ### Agent 5 — Main QA
 
-Status: IN PROGRESS
-Agent 1 verdict+SHA: not yet READY FOR REVIEW (currently IN PROGRESS)
+Status: IN PROGRESS (QA records now on branch qa/main-review; read-only reviews only; no pushes to backend/geospatial-engine)
+Agent 1 verdict+SHA: no verdict — Agent 1 BLOCKED at 4e612fa (awaiting human-pasted engine-ci run URL + pytest summary); not READY FOR REVIEW
 Agent 2 verdict+SHA: NOT STARTED
 Agent 3 verdict+SHA: NOT STARTED
 Agent 4 verdict+SHA: NOT STARTED
