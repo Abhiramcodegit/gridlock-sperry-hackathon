@@ -1,22 +1,27 @@
 """GridLock FastAPI app.
 
-/opportunities is PostGIS-backed when GRIDLOCK_DATABASE_URL is set: it runs the
-deterministic candidate query (ST_DWithin 40 km filter + ST_Distance on
-approved-geometry pairs). Ingestion of projects_proposed.csv happens ONCE at
-startup (see the startup handler / gridlock.migrate), not per request, so the
-endpoint is a read-only query. When no database is configured, it falls back to
-the file-based engine.
+`GET /opportunities` serves the P2 Revision 2.2 coordination contract
+(docs/specs/EDGE_CASES.md) computed by gridlock.contract over the official
+challenge dataset (data/official/projects_official.json). The engine runs
+offline and deterministically: no runtime network calls, no invented
+coordinates, no tuning.
 
-An empty array is the correct answer when no approved pair passes the filter.
+Distance model: closest points are found in EPSG:32617 (UTM 17N) via shapely,
+and the reported distance is the WGS 84 geodesic distance (pyproj.Geod) between
+those closest points. See gridlock.contract.
+
+An empty `data: []` array with HTTP 200 is the correct answer when no pair
+qualifies. The three documented 503 reasons and the 400 invalid_project_id case
+are returned as structured error bodies.
 """
 import json
 import pathlib
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
+from fastapi.responses import JSONResponse
 
-from .engine import Project, find_opportunities as find_opportunities_file
-from . import db, migrate
+from . import contract, db, migrate
 
 
 @asynccontextmanager
@@ -30,21 +35,16 @@ app = FastAPI(title="GridLock", lifespan=lifespan)
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 APPROVED = ROOT / "data" / "approved" / "projects_approved.geojson"
+OFFICIAL_JSON = ROOT / "data" / "official" / "projects_official.json"
 
 
-def _load_file_projects():
-    if not APPROVED.exists():
+def _load_official_projects() -> list[dict]:
+    """Load the official challenge dataset (the contract's approved dataset)."""
+    if not OFFICIAL_JSON.exists():
+        # Missing dataset is treated as a count mismatch (found 0), which maps
+        # to the documented 503 rather than a crash.
         return []
-    fc = json.loads(APPROVED.read_text())
-    out = []
-    for f in fc.get("features", []):
-        p = f["properties"]
-        out.append(Project(
-            p["id"], p["utility"], p["name"], f["geometry"],
-            p.get("geometry_confidence", "unresolved"),
-            review_status=p.get("review_status", "proposed"),
-        ))
-    return out
+    return json.loads(OFFICIAL_JSON.read_text())
 
 
 @app.get("/health")
@@ -60,15 +60,23 @@ def projects():
 
 
 @app.get("/opportunities")
-def opportunities():
-    """Ranked cross-utility coordination opportunities.
+def opportunities(project_id: str | None = Query(default=None)):
+    """Ranked cross-utility coordination opportunities (Revision 2.2 contract).
 
-    PostGIS path when a database is configured; otherwise the file-based
-    deterministic engine. Returns [] when no approved pair qualifies.
+    Optional `project_id` filters to opportunities touching that project,
+    preserving each opportunity's original rank. IDs are case-sensitive; an
+    unknown or wrong-case id returns 400 invalid_project_id.
     """
-    if db.database_url():
-        # Read-only query. Ingestion happened at startup (see _startup_ingest
-        # / gridlock.migrate), not here.
-        with db.connect() as conn:
-            return db.find_opportunities(conn)
-    return find_opportunities_file(_load_file_projects())
+    try:
+        if project_id is not None:
+            contract.validate_project_id(project_id)
+
+        payload = contract.build_opportunities(
+            _load_official_projects(), result_source="official_reference"
+        )
+
+        if project_id is not None:
+            payload = contract.filter_by_project(payload, project_id)
+        return payload
+    except contract.ContractError as exc:
+        return JSONResponse(status_code=exc.status, content=exc.body())
