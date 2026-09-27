@@ -6,29 +6,29 @@ Status values: NOT STARTED | IN PROGRESS | BLOCKED | READY FOR REVIEW | DONE
 
 ## Gate
 
-Phase 3 CI: PENDING
+Phase 3 CI: GREEN (https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004)
 
-Frontend merge allowed: NO
+Frontend merge allowed: YES
 
 <!-- AGENT-1:START -->
 
 ### Agent 1 — Engine CI & Phase 3 verification
 
-Status: BLOCKED
+Status: READY FOR REVIEW
 
 Branch: backend/geospatial-engine
 
-Latest SHA: be7314d (docs breakdown fix); status board be7314d..this commit
+Latest SHA: 02752cb (engine fix: ST_GeomFromGeoJSON()::geography)
 
-Files touched: AGENT_STATUS.md, docs/ENGINE_PHASE3.md
+Files touched: AGENT_STATUS.md, docs/ENGINE_PHASE3.md, backend/gridlock/db.py
 
-Tests: expected 24 passed, 0 skipped (20 unit/proxy-distance + 4 DB integration) — NOT yet verified against a real CI run
+Tests: 24 passed, 0 skipped (20 unit/proxy-distance + 4 DB integration). All 4 DB integration tests executed against live postgis/postgis:16-3.4 (not skipped). Verified via engine-ci run 36287891004.
 
-Blockers: Need human to paste engine-ci run URL + pytest summary line. No GitHub auth available on this machine (no gh CLI, no GITHUB_TOKEN/GH_TOKEN env var; unauthenticated api.github.com returns 404 for this repo, so I cannot read the Actions run).
+Blockers: none
 
-Next step: once a real green engine-ci run is provided, record the verified line in docs/ENGINE_PHASE3.md and flip the Gate to GREEN / merge allowed YES.
+Next step: none — Phase 3 CI is GREEN, Gate opened for frontend merge.
 
-Last updated: 2026-09-27T01:56:23Z
+Last updated: 2026-09-27T02:15:59Z
 
 <!-- AGENT-1:END -->
 
