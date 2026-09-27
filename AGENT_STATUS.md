@@ -70,10 +70,12 @@ Status: IN PROGRESS (QA records on qa/main-review; read-only reviews; no pushes 
 Agent 1 verdict+SHA: PASS (run-attested) @ 2eff3d0 — caveat: private repo, could not open Actions run 36287891004 via API; corroborated in-repo (ancestry, workflow, tests, count). Human glance at run page recommended.
 Agent 2 verdict+SHA: PASS WITH NOTES @ 4b83d4c (product) — notes: thin responsive (@media x1), no reduced-motion, map lacks aria/role. Non-blocking.
 Agent 3 verdict+SHA: PASS @ 9af3341 — descends from 4b83d4c; only test/config files; App.jsx/product untouched; npm ci clean; 9/9 tests pass; build exit 0; all 9 required cases covered; mocks limited to maplibre+fetch with specific assertions.
-Agent 4 verdict+SHA: PASS WITH NOTES @ 93c83a7 — note: README "24 passed (CI)" badge/bullet premature at that SHA (no run URL then); follow-up doc update to cite run 36287891004 now that Phase 3 is green.
+Agent 4 verdict+SHA: PASS @ b157fcf (final) — supersedes the earlier PASS WITH NOTES on 93c83a7; the stale-badge note is now RESOLVED (README + DEMO_FLOW cite run 36287891004 + engine SHA 02752cb + commit 2eff3d0, count scoped to engine SHA; DATA_LIMITATIONS + DEPLOYMENT added, no savings claims, no credentials).
+Engine head: a18fd2e PASS (status-only child of 2eff3d0; Gate block identical; marks Agent 1 READY FOR MERGE, awaits human auth).
+Agent 2 branch head: ce063c9 STATUS-ONLY confirmed (no product change above 4b83d4c).
 Open FAILs: none
-Recommended merge order: 1 Agent 1 (2eff3d0) → 2 Agent 2 (4b83d4c) → 3 Agent 3 (9af3341) → 4 Agent 4 (93c83a7, with post-merge doc follow-up)
-Ready to recommend for merge (human authorizes): 2eff3d0, 4b83d4c, 9af3341, 93c83a7
+Recommended merge order: 1 Agent 1 (verified 2eff3d0; branch head a18fd2e) → 2 Agent 2 (product 4b83d4c; head ce063c9 status-only) → 3 Agent 3 (9af3341) → 4 Agent 4 (final b157fcf)
+Ready to recommend for merge (human authorizes): 2eff3d0/a18fd2e, 4b83d4c, 9af3341, b157fcf
 Gate: Phase 3 CI GREEN; frontend merge allowed YES (see Gate block)
 Last updated: 2026-09-27
 
