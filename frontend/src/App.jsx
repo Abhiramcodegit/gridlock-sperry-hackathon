@@ -44,6 +44,28 @@ const BASEMAP_IDLE_GRACE_MS = 6000
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
+// Normalize the /projects envelope ({data, meta}) into a GeoJSON
+// FeatureCollection the map layers consume. Tolerates a raw FeatureCollection
+// (static fallback) by treating it as having no rows.
+function projectsToFC(proj) {
+  if (!proj) return EMPTY_FC
+  const rows = Array.isArray(proj.data) ? proj.data
+             : (proj.type === 'FeatureCollection' ? [] : [])
+  return {
+    type: 'FeatureCollection',
+    features: rows.filter(p => p.geometry).map(p => ({
+      type: 'Feature', geometry: p.geometry,
+      properties: {
+        utility: p.utility,
+        id: p.id,
+        name: p.project_name || p.id,
+        confidence: p.geometry_confidence,
+        in_service_year: p.in_service_date ? p.in_service_date.slice(0, 4) : null
+      }
+    }))
+  }
+}
+
 async function get(path, fallback) {
   try {
     const r = await fetch('/api' + path)
@@ -83,13 +105,15 @@ export default function App() {
   const [opps, setOpps] = useState([])
   const [candidates, setCandidates] = useState(EMPTY_FC)
   const [proposedTotal, setProposedTotal] = useState(0)
+  const [refCandidates, setRefCandidates] = useState([])
+  const [projCount, setProjCount] = useState(0)
   const [sel, setSel] = useState(null)
   const [offline, setOffline] = useState(false)
   const [err, setErr] = useState(null)
   const [basemapError, setBasemapError] = useState(false)
   const [loading, setLoading] = useState(true)
-  // Candidate-review layer is ON by default.
-  const [showCandidates, setShowCandidates] = useState(true)
+  // Candidate-review layer is OFF by default.
+  const [showCandidates, setShowCandidates] = useState(false)
 
   useEffect(() => {
     // maplibregl.Map unchanged in v6
@@ -162,12 +186,16 @@ export default function App() {
       if (dataLoaded || cancelled) return
       dataLoaded = true
       try {
-        const [fc, o1] = await get('/projects', '/static/projects_approved.geojson')
+        const [proj, o1] = await get('/projects', '/static/projects_approved.geojson')
+        const fc = projectsToFC(proj)
+        setProjCount(proj?.meta?.count ?? fc.features.length)
         const [op, o2] = await get('/opportunities', '/static/opportunities.json')
+        const [ref] = await get('/reference/opportunities', '/static/opportunities.json')
         const cand = await getCandidates()
         if (cancelled) return
-        approvedFCRef.current = fc || EMPTY_FC
+        approvedFCRef.current = fc
         candidateFCRef.current = cand
+        setRefCandidates(Array.isArray(ref?.data) ? ref.data : [])
         setOffline(o1 || o2)
         setOpps(Array.isArray(op) ? op : [])
         setCandidates(cand)
@@ -229,6 +257,20 @@ export default function App() {
     }
   }, [showCandidates, loading])
 
+  // Update the reference-candidate connector lines when refCandidates change.
+  useEffect(() => {
+    if (!map.current) return
+    const src = map.current.getSource && map.current.getSource('ref-lines-src')
+    if (!src) return
+    src.setData({
+      type: 'FeatureCollection',
+      features: refCandidates
+        .filter(r => r.closest_connector)
+        .map(r => ({ type: 'Feature', geometry: r.closest_connector,
+                     properties: { rank: r.rank, tier: r.coordination_tier_label } }))
+    })
+  }, [refCandidates])
+
   function pick(o) {
     setSel(o)
     const s = o.closest_segment
@@ -270,7 +312,9 @@ export default function App() {
 
         {offline && !err && (
           <p className="badge warn" data-testid="fallback-state">
-            Offline fallback: showing static approved data (API unavailable).
+            {projCount > 0
+              ? `Live: Official dataset · ${projCount} projects`
+              : 'Offline fallback: static data (API unavailable)'}
           </p>
         )}
 
@@ -303,6 +347,37 @@ export default function App() {
               Coordinate-derived reference candidates are listed separately.
             </p>
           </div>
+        )}
+
+        {/* Reference candidates — coordinate-derived pairs, non-authoritative. */}
+        {!loading && !err && (
+          <section className="ref-candidates" data-testid="ref-candidates-section">
+            <h2>Reference Candidates</h2>
+            <p className="disclaimer" data-testid="ref-candidates-disclaimer">
+              Coordinate-derived reference pairs. Not approved results.
+            </p>
+            {refCandidates.length === 0 ? (
+              <p data-testid="ref-candidates-empty">No reference candidates</p>
+            ) : (
+              <ol data-testid="ref-candidates-list">
+                {refCandidates.map(r => (
+                  <li key={r.rank} data-testid={`ref-candidate-${r.rank}`}>
+                    <b>{r.desc_project_id} ↔ {r.gpc_project_id}</b>
+                    <span>
+                      {r.closest_distance_km?.toFixed(3)} km ·{' '}
+                      {r.coordination_tier_label}
+                    </span>
+                    {r.shared_endpoint_name && (
+                      <span className="shared">{r.shared_endpoint_name}</span>
+                    )}
+                    {r.is_endpoint_only_estimate && (
+                      <span className="estimate-note">endpoint estimate</span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
         )}
 
         {/* Candidate-review panel — proposed proxies, non-authoritative. */}
@@ -495,6 +570,18 @@ function addOverlays(m, approvedFC, candidateFC) {
         'text-halo-color': '#fffbeb',
         'text-halo-width': 1.5
       }
+    })
+  }
+
+  // ---- Reference-candidate connector lines (NON-AUTHORITATIVE) ----
+  // Coordinate-derived proximity pairs; updated by the refCandidates effect.
+  if (!hasSource(m, 'ref-lines-src')) {
+    m.addSource('ref-lines-src', { type: 'geojson', data: EMPTY_FC })
+  }
+  if (!hasLayer(m, 'ref-lines')) {
+    m.addLayer({
+      id: 'ref-lines', type: 'line', source: 'ref-lines-src',
+      paint: { 'line-width': 2, 'line-dasharray': [3, 2], 'line-color': '#f59e0b' }
     })
   }
 }

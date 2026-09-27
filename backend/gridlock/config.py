@@ -2,7 +2,7 @@ TIERS = [
     ("crossing", 0.0, True, "Must coordinate: outage timing, crossing structures"),
     ("shared_land", 1600.0, False, "Share right-of-way, access roads, permits"),
     ("shared_logistics", 8000.0, False, "Share laydown yards, deliveries"),
-    ("shared_crews", 40000.0, True, "Share crews and equipment"),
+    ("shared_crews", 40000.0, False, "Share crews and equipment"),
 ]
 CANDIDATE_RADIUS_M = 40000.0
 WEIGHT_GEO = 0.7
