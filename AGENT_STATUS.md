@@ -108,7 +108,21 @@ Status: NOT STARTED
 
 ### Agent 4 — Demo & documentation
 
-Status: NOT STARTED
+Status: READY FOR REVIEW
+
+Branch: docs/demo-flow (from base c8b5279)
+
+Latest SHA: see docs/demo-flow HEAD (recorded in the final report)
+
+Files touched: README.md, docs/DEMO_FLOW.md, docs/DATA_LIMITATIONS.md (augmented), docs/DEPLOYMENT.md (new), AGENT_STATUS.md (Agent-4 section only)
+
+Claims awaiting verification: none of my own. Phase 3 PostGIS CI is now cited as VERIFIED per Agent 1 — Actions run 36287891004, tested engine SHA 02752cb1edb4085c8e80a328deac637685af3def, verified 2026-09-27, 24 passed / 0 skipped (engine suite only, not the final integrated project count). Caveat carried in docs: the repo is private, so the Actions run page needs authenticated access; the result is Agent 1-attested and recorded in docs/ENGINE_PHASE3.md (verification commit 2eff3d0). I did not independently open the run (no GitHub auth on this machine).
+
+Blockers: none.
+
+Next step: hand off for Agent 5 review of this follow-up commit. Do not merge (per instruction).
+
+Last updated: 2026-09-27
 
 <!-- AGENT-4:END -->
 
