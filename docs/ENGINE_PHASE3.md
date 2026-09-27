@@ -19,6 +19,9 @@ First real engine commit on `backend/geospatial-engine`.
   silently treated as overlapping.
 - **API**: `GET /opportunities` returns a ranked JSON array. Uses PostGIS when
   `GRIDLOCK_DATABASE_URL` is set, else the file-based deterministic engine.
+  Ingestion runs ONCE at app startup (FastAPI lifespan handler) and via the
+  `python -m gridlock.migrate` CLI — NOT on every request. The endpoint itself
+  is a read-only query. (Addresses the review note about per-request ingest.)
 
 ## Current real result
 

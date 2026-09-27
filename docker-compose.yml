@@ -6,7 +6,9 @@ services:
     volumes: ["./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql"]
   api:
     build: ./backend
-    command: uvicorn gridlock.api:app --host 0.0.0.0 --port 8000
+    command: sh -c "python -m gridlock.migrate && uvicorn gridlock.api:app --host 0.0.0.0 --port 8000"
+    environment:
+      GRIDLOCK_DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/gridlock"
     ports: ["8000:8000"]
     volumes: ["./data:/data"]
     depends_on: [db]

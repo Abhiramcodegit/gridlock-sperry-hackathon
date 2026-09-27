@@ -1,21 +1,32 @@
 """GridLock FastAPI app.
 
-/opportunities is PostGIS-backed when GRIDLOCK_DATABASE_URL is set: it ingests
-the proposed rows from projects_proposed.csv and runs the deterministic
-candidate query (ST_DWithin 40 km filter + ST_Distance on approved-geometry
-pairs). When no database is configured, it falls back to the file-based engine.
+/opportunities is PostGIS-backed when GRIDLOCK_DATABASE_URL is set: it runs the
+deterministic candidate query (ST_DWithin 40 km filter + ST_Distance on
+approved-geometry pairs). Ingestion of projects_proposed.csv happens ONCE at
+startup (see the startup handler / gridlock.migrate), not per request, so the
+endpoint is a read-only query. When no database is configured, it falls back to
+the file-based engine.
 
 An empty array is the correct answer when no approved pair passes the filter.
 """
 import json
 import pathlib
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from .engine import Project, find_opportunities as find_opportunities_file
-from . import db
+from . import db, migrate
 
-app = FastAPI(title="GridLock")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load proposed rows into PostGIS once at boot. No-op in file-only mode.
+    migrate.run()
+    yield
+
+
+app = FastAPI(title="GridLock", lifespan=lifespan)
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 APPROVED = ROOT / "data" / "approved" / "projects_approved.geojson"
@@ -56,7 +67,8 @@ def opportunities():
     deterministic engine. Returns [] when no approved pair qualifies.
     """
     if db.database_url():
+        # Read-only query. Ingestion happened at startup (see _startup_ingest
+        # / gridlock.migrate), not here.
         with db.connect() as conn:
-            db.ingest_csv(conn)              # proposed rows only
             return db.find_opportunities(conn)
     return find_opportunities_file(_load_file_projects())
