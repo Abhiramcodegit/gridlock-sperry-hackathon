@@ -9,22 +9,25 @@ Last updated: 2026-09-27
 
 ---
 
-## Inclusion threshold: under 40 km / 25 mi
+## Inclusion threshold: 40 km (the enforced gate)
 
 Two planned projects are screened as a candidate coordination pair only if their
-geometries come within **40 km (≈ 25 miles)** of each other. Under 40 km → flag
-for review; farther → ignore.
+geometries come within **40 km** of each other. Under 40 km → flag for review;
+farther → ignore.
 
-- 40 km ≈ 24.85 mi, so the challenge's two phrasings (the docx/xlsx use 25 mi;
-  the richer prompt uses 40 km) are effectively the same cutoff.
+- The **enforced gate is 40 km = 40 000 m ≈ 24.855 mi.** The challenge docx/xlsx
+  phrase the cutoff as **25 mi (≈ 40.234 km)**; GridLock implements the 40 km
+  form. The two are **not identical** — they differ by ~0.23 km at the boundary,
+  so a pair between 40.000 km and 40.234 km would pass a 25-mi rule but is
+  rejected by the 40 km gate. All GridLock results use the 40 km gate.
 - The rationale is operational: 40 km is roughly how far a crew drives from a
   morning staging yard. Inside that radius, two utilities can plausibly share
   crews, cranes, and contractors.
-- In the implementation this is the constant `CANDIDATE_RADIUS_M = 40000` in
+- In the implementation this is the constant `CANDIDATE_RADIUS_M = 40000.0` in
   [`backend/gridlock/config.py`](../backend/gridlock/config.py), enforced by the
   candidate filter (`ST_DWithin(..., 40000)` in PostGIS mode, or the
-  `tier()` cutoff in file mode). It is a fixed parameter, not a per-request
-  guess.
+  `tier()` cutoff in file mode; the offline reference engine gates on
+  `distance_m < 40_000.0`). It is a fixed parameter, not a per-request guess.
 
 ---
 
@@ -37,8 +40,13 @@ closest points), never center-to-center.
 
 The engine computes this by projecting both geometries into UTM 17N
 (`EPSG:32617`, the most accurate projection for the SC/GA border region), taking
-the nearest points between them, and reporting the geodesic separation. A pair
-that touches or crosses is distance zero.
+the nearest points between them, and reporting the separation. A pair whose
+endpoint coordinates coincide computes to distance zero (crossing tier).
+
+> Distances are closest-point, computed from published endpoint coordinates.
+> Against a WGS 84 geodesic reference, model error within 40 km is under 0.35%
+> (about 120 m at most). No tier assignment or qualifying pair changes under any
+> of the models we tested.
 
 ---
 
@@ -72,7 +80,7 @@ importantly for a screening tool — what is *shareable* at that tier:
 
 | Tier | Distance | What can be shared / coordinated |
 |---|---|---|
-| **Crossing / touching** | intersects or 0 m | **Must coordinate:** outage timing, crossing structures. The projects physically meet. |
+| **Crossing / touching** | intersects or 0 m | **Must coordinate:** outage timing, crossing structures. The endpoint coordinates coincide; whether the facilities physically meet cannot be confirmed from the published data, so the pair is flagged for coordination review. |
 | **Shared land** | < 1.6 km | Share the land itself: right-of-way, access roads, permits. |
 | **Shared logistics** | < 8 km | Share site logistics: laydown yards, deliveries. |
 | **Shared crews** | < 40 km | Share crews and equipment mobilized from a common staging area. |
@@ -106,23 +114,25 @@ Closest-point is more faithful to reality:
   — but for two-endpoint projects, closest-point is strictly the more honest
   measure of how near the two builds actually get.
 
-Both measures use the same 40 km flag threshold, so they agree on *whether* to
+Both measures apply the 40 km flag threshold, so they agree on *whether* to
 screen a pair in most cases; closest-point mainly changes the *ranking* and the
-tier, pulling genuinely adjacent corridors up where they belong.
+tier, pulling genuinely adjacent corridors up where they belong. On the official
+dataset the two metrics produce the same six qualifying pairs; only the reported
+distances differ.
 
 ---
 
 ## Why most project pairs correctly produce no overlap
 
 With 5 DESC and 5 GPC projects there are **25 possible cross-utility pairs**. The
-official answer key flags **6**. The other 19 correctly produce no overlap, and
-that is the expected, healthy outcome:
+reference engine flags **6**; the other **19 pairs** correctly produce no
+overlap, and that is the expected, healthy outcome:
 
 - Utilities plan across large service territories. Most planned projects are
-  simply far apart — GPC_4 (Mitchell–North Tifton, southwest Georgia) and GPC_5
-  (Jesup–Ludowici, southeast Georgia) and DESC_4 (Queensboro–Ft Johnson,
-  Charleston) sit in regions with no nearby cross-utility work, so they flag
-  nothing.
+  simply far apart. Three projects appear in **no** overlapping pair at all —
+  GPC_4 (Mitchell–North Tifton, southwest Georgia), GPC_5 (Jesup–Ludowici,
+  southeast Georgia), and DESC_4 (Queensboro–Ft Johnson, Charleston) — because
+  they sit in regions with no nearby cross-utility work.
 - The 40 km filter exists precisely to reject far-apart pairs. A tool that
   "found" opportunities everywhere would be wrong; the value is in isolating the
   few genuine adjacencies from the many non-adjacencies.

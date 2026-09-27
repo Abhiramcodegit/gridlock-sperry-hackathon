@@ -44,6 +44,11 @@ them into a single headline number.
 Anchor project total: **~$11,116,933** (Okatie 230–115 kV / Jasper–Yemassee
 fold-in, from the Dominion filing above). This number is real and cited.
 
+> **Scope note:** the anchor is a *nearby* Okatie-area DESC filing used as a
+> dollar reference; it is **not itself one of the six flagged pair projects**
+> (DESC_1/2/3/5, GPC_1/2/3). It supplies a realistic order-of-magnitude cost for
+> the corridor, not the cost of a specific flagged pair.
+
 ### Layer 2 — assumed shareable share (assumption, not a fact)
 
 Only a *portion* of a project's cost is ever shareable with a neighbor — the

@@ -20,10 +20,28 @@ way to overstate a result, so they are documented apart here.
 | **B. GridLock ingestion pipeline** | `data/normalized/projects_proposed.csv` → `data/approved/projects_approved.geojson` | Our own provenance-gated ingestion of live public filings | 34 proposed rows, **0 approved** |
 
 Everything the demo, methodology, and cost docs describe is grounded in
-**Track A**, the official dataset. Track B is our stricter, still-in-review
-research pipeline; its approved set is intentionally empty and its engine
-correctly returns `[]`. See [`DATA_LIMITATIONS.md`](DATA_LIMITATIONS.md) for the
-full Track B posture.
+**Track A**, the official dataset, and is computed by the **offline reference
+engine** (`official_engine.py`), not the live API. Track B is our stricter,
+still-in-review research pipeline; its approved set is intentionally empty and
+its engine correctly returns `[]`. See [`DATA_LIMITATIONS.md`](DATA_LIMITATIONS.md)
+for the full Track B posture.
+
+### The five result surfaces (do not conflate)
+
+To avoid overstating any result, GridLock's outputs are reported on five
+distinct surfaces:
+
+1. **Spreadsheet center-to-center** — `Projects_Overlaps.xlsx` Sheet 2 answer
+   key (miles, midpoint-to-midpoint).
+2. **Offline reference engine closest-point** — `official_engine.py` over Track
+   A; the source of the six flagged pairs and their closest-point distances.
+3. **Conservative production API** — `GET /opportunities` returns `[]` today
+   because nothing in Track B is human-approved.
+4. **Frontend candidate/proxy display** — the map can render inferred candidate
+   geometry for display only; of the 34 proposed Track B records, **32 carry no
+   geometry** and the 2 that do are proxy points, never approved opportunities.
+5. **Official reference results** — the six overlaps from surface 2, presented as
+   the demo's headline. Distinct from the live API (surface 3).
 
 ---
 
