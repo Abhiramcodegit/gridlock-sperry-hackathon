@@ -55,3 +55,18 @@ Status: NOT STARTED
 Status: NOT STARTED
 
 <!-- AGENT-4:END -->
+
+<!-- AGENT-5:START -->
+
+### Agent 5 — Main QA
+
+Status: IN PROGRESS
+Agent 1 verdict+SHA: not yet READY FOR REVIEW (currently IN PROGRESS)
+Agent 2 verdict+SHA: NOT STARTED
+Agent 3 verdict+SHA: NOT STARTED
+Agent 4 verdict+SHA: NOT STARTED
+Open FAILs: none
+Recommended merge order: 1 (engine/CI) → 2 (frontend) → 3 (frontend tests) → 4 (docs); none ready to recommend yet
+Last updated: 2026-09-27
+
+<!-- AGENT-5:END -->
