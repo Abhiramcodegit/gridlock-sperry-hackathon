@@ -9,7 +9,13 @@ li span{display:block;font-size:14px;color:#555}
 .warn{background:#fef3c7}
 .err{background:#fee2e2}
 .empty{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;color:#334155;font-size:14px;line-height:1.4}
+.empty-headline{font-weight:600;margin:0 0 4px}
+.empty-body{margin:0;color:#475569}
+.shared-endpoint{border:1px solid #cbd5e1;border-radius:6px;padding:8px 10px;margin:0 0 8px;background:#f8fafc}
+.shared-endpoint-headline{font-weight:600;margin:0}
+.shared-endpoint-name{margin:2px 0 0;color:#334155}
 .drawer{border-top:1px solid #ddd;margin-top:12px}
+.drawer .method{font-size:12px;color:#64748b;line-height:1.4;margin-top:2px}
 
 /* Candidate-review panel — deliberately marked as non-authoritative. */
 .candidates{margin-top:16px;border:1px dashed #f59e0b;border-radius:10px;padding:12px;background:#fffbeb}
@@ -22,5 +28,18 @@ li span{display:block;font-size:14px;color:#555}
 .candidate-item b{color:#92400e}
 .candidate-item .src{color:#78716c;font-size:12px}
 .candidate-count{font-size:13px;color:#57534e;margin:8px 0 0}
+
+/* Custom MapLibre controls (Fit-to-projects, Reset-to-Southeast).
+   Override the sidebar `li button` block sizing and use a 44x44 touch target
+   (WCAG 2.5.5 target-size guidance) so controls are comfortably tappable on
+   mobile. Applies to all control-group buttons, including MapLibre's built-in
+   zoom/compass, for a consistent, accessible size. */
+.maplibregl-ctrl-group button{
+  display:block;width:44px;height:44px;padding:0;margin:0;
+  border:0;background:#fff;cursor:pointer;font-size:20px;line-height:44px;text-align:center;color:#333;
+}
+.maplibregl-ctrl-group button:hover{background:#f2f2f2}
+/* Keep MapLibre's zoom/compass control icons centered at the larger size. */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon{width:44px;height:44px}
 
 @media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto 60vh}main{height:60vh}}

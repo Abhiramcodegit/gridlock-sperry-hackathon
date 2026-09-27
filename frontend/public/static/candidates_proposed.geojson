@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "note": "NON-AUTHORITATIVE candidate-review data. Runtime data asset (not compiled code), derived from data/normalized/projects_proposed.csv. Both points are INFERRED substation proxies (centroid of an OSM substation way), NOT approved project geometry and NOT the actual proposed facility footprints. They must never be assigned a coordination tier, and the distance between them is NOT a verified project-to-project distance.",
+    "source_of_truth": "data/normalized/projects_proposed.csv",
+    "proposed_total": 34,
+    "proposed_with_geometry": 2,
+    "proposed_without_geometry": 32
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-81.1824528, 32.3543695] },
+      "properties": {
+        "id": "GPC-004",
+        "utility": "GPC",
+        "name": "Effingham County 500 kV",
+        "label": "Proposed — inferred substation proxy",
+        "review_status": "proposed",
+        "geometry_confidence": "inferred",
+        "geometry_method": "centroid_of_osm_way",
+        "geometry_source": "OSM way 121624371 (West McIntosh Substation)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-80.0702792, 32.8303196] },
+      "properties": {
+        "id": "DESC-003",
+        "utility": "DESC",
+        "name": "Long Savannah 115 kV Tap",
+        "label": "Proposed — inferred substation proxy",
+        "review_status": "proposed",
+        "geometry_confidence": "inferred",
+        "geometry_method": "centroid_of_osm_way",
+        "geometry_source": "OSM way 185330726 (Church Creek Substation)"
+      }
+    }
+  ]
+}

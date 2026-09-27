@@ -11,7 +11,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: false,        // localhost only — explicitly disables network exposure
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   },
   // maplibre-gl v6's ESM bundle uses syntax (e.g. destructuring in
   // certain positions) that esbuild cannot down-level to the old default

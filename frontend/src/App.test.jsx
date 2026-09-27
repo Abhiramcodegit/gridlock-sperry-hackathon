@@ -60,14 +60,29 @@ vi.mock('maplibre-gl', () => {
   class LngLatBounds {
     extend() { return this }
   }
-  return { __esModule: true, Map, LngLatBounds, default: { Map, LngLatBounds } }
+  // setWorkerUrl is a no-op in tests; the real one wires the render worker.
+  const setWorkerUrl = () => {}
+  return { __esModule: true, Map, LngLatBounds, setWorkerUrl, default: { Map, LngLatBounds, setWorkerUrl } }
 })
+// The Vite `?worker&url` import has no meaning under vitest; stub it to a string.
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({ default: 'test-worker-url' }))
 
 // Mock the CSS side-effect import so it is a harmless no-op under jsdom.
 vi.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}))
 
 // Import App AFTER the mocks are registered.
 import App from './App.jsx'
+// Candidate-review geometry now loads at runtime from a static data asset
+// (F18: no hardcoded coordinates in App.jsx). Tests drive that fetch from the
+// test-only fixture below (moved out of src/ into test/fixtures/).
+import { candidateFeatureCollection, PROPOSED_TOTAL } from './test/fixtures/candidateFixture.js'
+
+// FeatureCollection the app expects from /static/candidates_proposed.geojson,
+// including the metadata.proposed_total the sidebar count reads.
+const candidatesResponseBody = {
+  ...candidateFeatureCollection,
+  metadata: { proposed_total: PROPOSED_TOTAL },
+}
 
 // ---- fetch helpers ----------------------------------------------------------
 function jsonResponse(body, ok = true, status = 200) {
@@ -84,10 +99,13 @@ function jsonResponse(body, ok = true, status = 200) {
 function installDefaultFetch() {
   const fetchMock = vi.fn((url) => {
     if (url === '/api/projects') {
-      return jsonResponse({ type: 'FeatureCollection', features: [] })
+      return jsonResponse({ data: [], meta: { count: 0 } })
     }
     if (url === '/api/opportunities') {
       return jsonResponse([])
+    }
+    if (url === '/api/reference/opportunities') {
+      return jsonResponse({ data: [], meta: { count: 0 } })
     }
     // Static fallbacks (should not be hit on the happy path).
     if (url === '/static/projects_approved.geojson') {
@@ -95,6 +113,10 @@ function installDefaultFetch() {
     }
     if (url === '/static/opportunities.json') {
       return jsonResponse([])
+    }
+    // Candidate-review geometry (runtime static data asset).
+    if (url === '/static/candidates_proposed.geojson') {
+      return jsonResponse(candidatesResponseBody)
     }
     return jsonResponse(null, false, 404)
   })
@@ -150,9 +172,10 @@ describe('2. approved-empty opportunity state', () => {
     render(<App />)
 
     const empty = await screen.findByTestId('empty-state')
-    // Whitespace-tolerant match of the exact copy from App.jsx.
+    // Spec 2.2.1 §8.4 approved-only empty state (headline + body).
+    expect(empty).toHaveTextContent(/No approved coordination opportunities yet/i)
     expect(empty).toHaveTextContent(
-      /No approved coordination opportunities currently qualify\. Showing 2 proposed proxy locations for review; these are excluded from opportunity analysis\./i
+      /No project pair has completed per-geometry human approval\. Coordinate-derived reference candidates are listed separately\./i
     )
     // No opportunity list is rendered when there are no opportunities.
     expect(screen.queryByTestId('opportunity-list')).toBeNull()
@@ -206,22 +229,22 @@ describe('4. exact proxy label text', () => {
 // 5. Candidate-layer toggle.
 // -----------------------------------------------------------------------------
 describe('5. candidate-layer toggle', () => {
-  it('toggle is on by default and flips off/on, controlling candidate visibility', async () => {
+  it('toggle is off by default and flips on/off, controlling candidate visibility', async () => {
     installDefaultFetch()
     const user = userEvent.setup()
     render(<App />)
 
     const toggle = await screen.findByTestId('candidate-layer-toggle')
-    // On by default (requirement: candidate layer visible on load).
-    expect(toggle).toBeChecked()
-    // Candidate items are visible while the toggle is on.
+    // Off by default (candidate map layer hidden on load).
+    expect(toggle).not.toBeChecked()
+    // The candidate sidebar list still renders regardless of the map toggle.
     expect(screen.getByTestId('candidate-item-GPC-004')).toBeInTheDocument()
 
     await user.click(toggle)
-    expect(toggle).not.toBeChecked()
+    expect(toggle).toBeChecked()
 
     await user.click(toggle)
-    expect(toggle).toBeChecked()
+    expect(toggle).not.toBeChecked()
   })
 })
 
@@ -329,5 +352,55 @@ describe('9. static fallback state', () => {
     expect(screen.queryByTestId('error-state')).toBeNull()
     // Static data is still empty, so the empty state also shows.
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument()
+  })
+})
+
+// -----------------------------------------------------------------------------
+// 10. Reference-candidates section renders.
+// -----------------------------------------------------------------------------
+describe('10. ref-candidates section renders', () => {
+  it('shows ref candidates when /reference/opportunities returns data', async () => {
+    const fetchMock = vi.fn((url) => {
+      if (url === '/api/projects')
+        return jsonResponse({ data: [], meta: { count: 0 } })
+      if (url === '/api/opportunities') return jsonResponse([])
+      if (url === '/api/reference/opportunities') return jsonResponse({
+        data: [{
+          rank: 1,
+          desc_project_id: 'DESC_1',
+          gpc_project_id: 'GPC_1',
+          closest_distance_km: 5.123,
+          coordination_tier_label: 'Under 8 km (5 mi)',
+          shared_endpoint_name: null,
+          is_endpoint_only_estimate: false,
+          closest_connector: null
+        }],
+        meta: { count: 1 }
+      })
+      if (url === '/static/candidates_proposed.geojson')
+        return jsonResponse(candidatesResponseBody)
+      return jsonResponse(null, false, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+
+    const item = await screen.findByTestId('ref-candidate-1')
+    expect(item).toHaveTextContent('DESC_1')
+    expect(item).toHaveTextContent('GPC_1')
+    expect(item).toHaveTextContent('5.123 km')
+  })
+})
+
+// -----------------------------------------------------------------------------
+// 11. Candidate toggle defaults off.
+// -----------------------------------------------------------------------------
+describe('11. candidate toggle defaults off', () => {
+  it('legacy candidate layer toggle is OFF by default', async () => {
+    installDefaultFetch()
+    render(<App />)
+
+    const toggle = await screen.findByTestId('candidate-layer-toggle')
+    expect(toggle).not.toBeChecked()
   })
 })
