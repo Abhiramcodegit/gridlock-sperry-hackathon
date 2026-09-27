@@ -78,7 +78,7 @@ def ingest_csv(conn, csv_path: pathlib.Path = DATA_CSV, proposed_only: bool = Tr
                     source_url, source_title, source_date, source_page, source_excerpt,
                     review_status, ceii_checked, last_verified)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,
-                        CASE WHEN %s = '' THEN NULL ELSE ST_GeogFromGeoJSON(%s) END,
+                        CASE WHEN %s = '' THEN NULL ELSE ST_GeomFromGeoJSON(%s)::geography END,
                         %s,%s,%s,%s,
                         %s,%s,%s,%s,
                         %s,%s,%s,%s,%s,
