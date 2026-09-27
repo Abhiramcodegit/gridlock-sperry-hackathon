@@ -10,6 +10,7 @@ li span{display:block;font-size:14px;color:#555}
 .err{background:#fee2e2}
 .empty{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;color:#334155;font-size:14px;line-height:1.4}
 .drawer{border-top:1px solid #ddd;margin-top:12px}
+.drawer .method{font-size:12px;color:#64748b;line-height:1.4;margin-top:2px}
 
 /* Candidate-review panel — deliberately marked as non-authoritative. */
 .candidates{margin-top:16px;border:1px dashed #f59e0b;border-radius:10px;padding:12px;background:#fffbeb}

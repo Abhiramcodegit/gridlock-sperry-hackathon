@@ -348,7 +348,11 @@ export default function App() {
         {sel && (
           <section className="drawer" data-testid="opportunity-detail">
             <h2>Evidence</h2>
-            <p>Minimum distance (full geometry): {(sel.distance_m / 1000).toFixed(3)} km</p>
+            <p data-testid="distance-value">Closest-point distance: {(sel.distance_m / 1000).toFixed(3)} km</p>
+            <p className="method" data-testid="distance-method">
+              WGS 84 geodesic between the nearest points of the published
+              straight-line geometries (nearest points found in UTM 17N).
+            </p>
             <p>Tier: {sel.tier} — {sel.coordination_action}</p>
             <p>Timeline: {sel.timeline_status} ({sel.timeline_overlap_fraction})</p>
             <p>Confidence: {sel.confidence_multiplier}</p>
