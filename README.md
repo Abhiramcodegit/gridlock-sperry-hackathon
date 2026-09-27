@@ -2,9 +2,9 @@
 
 > **Sperry Hackathon 2026 — Transmission Coordination Discovery Engine**
 
-[![Phase](https://img.shields.io/badge/phase-3%20deterministic%20engine-yellow)](#phase-status)
-[![Tests](https://img.shields.io/badge/tests-24%20passed%2C%200%20skipped%20(CI)-brightgreen)](#tests)
-[![Phase 3 CI](https://img.shields.io/badge/Phase%203%20PostGIS%20CI-pending-lightgrey)](#tests)
+[![Phase](https://img.shields.io/badge/phase-3%20deterministic%20engine-brightgreen)](#phase-status)
+[![Engine tests](https://img.shields.io/badge/engine%20tests-24%20passed%2C%200%20skipped-brightgreen)](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004)
+[![Phase 3 CI](https://img.shields.io/badge/Phase%203%20PostGIS%20CI-verified-brightgreen)](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004)
 [![Security](https://img.shields.io/badge/npm%20audit-0%20high%2F0%20critical-brightgreen)](#security)
 
 GridLock finds opportunities for electric utilities to coordinate transmission construction projects — so they can share trenches, access roads, environmental permits, and contractor mobilization instead of paying for them twice.
@@ -202,8 +202,8 @@ Full setup guide with troubleshooting: [`docs/SETUP.md`](docs/SETUP.md)
 | 0 | Scaffold | ✅ Complete |
 | 1 | Source validation | ✅ 34 proposed rows captured with provenance |
 | 2 | Candidate geometry | ✅ GPC-004 + DESC-003 inferred proxies; honest 116.993 km negative |
-| 3 | Deterministic PostGIS engine | ⏳ Code complete; **Phase 3 PostGIS CI verification: pending** |
-| 4 | Demo & documentation | ⏳ In progress (this branch) |
+| 3 | Deterministic PostGIS engine | ✅ Verified — Phase 3 PostGIS CI green (24 passed, 0 skipped) at engine SHA `02752cb`, [run 36287891004](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004), 2026-09-27 |
+| 4 | Demo & documentation | ✅ This branch |
 
 Live multi-agent tracker: [`AGENT_STATUS.md`](AGENT_STATUS.md) ·
 engine details: [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md)
@@ -212,20 +212,31 @@ engine details: [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md)
 
 Deterministic engine + integration suite:
 
-- **Local (no database):** 20 passed, 4 skipped — the 4 PostGIS integration
-  tests skip automatically when `GRIDLOCK_DATABASE_URL` is unset.
 - **CI (with PostGIS):** **24 passed, 0 skipped** — 17 engine + 3 proxy-distance
   + 4 DB integration, run by
   [`.github/workflows/engine-ci.yml`](.github/workflows/engine-ci.yml) against
   `postgis/postgis:16-3.4`.
+- **Local (no database):** 20 passed, 4 skipped — the 4 PostGIS integration
+  tests skip automatically when `GRIDLOCK_DATABASE_URL` is unset.
 
 The integration suite includes a **positive control** (a synthetic approved
 cross-utility pair under 40 km that must produce an opportunity), proving the
 empty production result is data-driven rather than a broken query.
 
-> **Phase 3 PostGIS CI verification: pending** — awaiting a green GitHub Actions
-> run URL and tested commit SHA. Do not treat the live PostGIS run as verified
-> until the status-board Gate reads GREEN.
+> **Scope of this count:** "24 passed, 0 skipped" is the result for **Agent 1's
+> tested engine SHA `02752cb`** — the backend deterministic engine + PostGIS
+> integration suite only. It is **not** the final post-integration project test
+> count (frontend and other workstreams are counted separately).
+
+> **Phase 3 PostGIS CI: verified.**
+> [Actions run 36287891004](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004)
+> · tested engine SHA `02752cb1edb4085c8e80a328deac637685af3def`
+> · verified 2026-09-27 · four PostGIS integration tests executed · result:
+> 24 passed, 0 skipped.
+> Note: the repository is private, so the Actions run page requires
+> authenticated access; this evidence is attested by Agent 1 and recorded in
+> [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md) (verification commit
+> `2eff3d0`).
 
 ---
 

@@ -137,13 +137,19 @@ If the engine always returned `[]`, you couldn't tell "correctly empty" from
 Together these prove the empty production result is **data-driven**, not a dead
 query. When qualifying data exists, the engine emits it.
 
-**Test count: 24 passed, 0 skipped** under CI with PostGIS
+**Engine test count: 24 passed, 0 skipped** under CI with PostGIS
 (17 engine + 3 proxy-distance + 4 DB integration). Locally without a database
-the 4 DB tests skip, so you'll see 20 passed, 4 skipped.
+the 4 DB tests skip, so you'll see 20 passed, 4 skipped. This count is the
+**backend engine suite only**, at Agent 1's tested SHA — it is not the final
+integrated project test count.
 
-> **Phase 3 PostGIS CI verification: pending** — awaiting a green GitHub Actions
-> run URL and tested commit SHA from Agent 1. Do not claim the live PostGIS run
-> is verified until the status board Gate reads GREEN.
+> **Phase 3 PostGIS CI: verified.** Green
+> [Actions run 36287891004](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004),
+> tested engine SHA `02752cb1edb4085c8e80a328deac637685af3def`, verified
+> 2026-09-27, four PostGIS integration tests executed, result 24 passed,
+> 0 skipped. The repo is private, so the run page needs authenticated access;
+> the result is attested by Agent 1 and recorded in
+> [`ENGINE_PHASE3.md`](ENGINE_PHASE3.md) (verification commit `2eff3d0`).
 
 ---
 
@@ -168,9 +174,9 @@ opportunities appear — and not a moment sooner."
 | Candidate radius | 40 km (`CANDIDATE_RADIUS_M = 40000`) | `backend/gridlock/config.py` |
 | Proxy distance | 116.993 km (geodesic WGS84), outside 40 km | `docs/PROXY_DISTANCE_RESULT.md` |
 | `/opportunities` result | `[]` (correct) | `backend/gridlock/api.py` |
-| Test count (CI, with PostGIS) | 24 passed, 0 skipped | `.github/workflows/engine-ci.yml`, `docs/ENGINE_PHASE3.md` |
-| Test count (local, no DB) | 20 passed, 4 skipped | local `pytest` run |
-| Phase 3 CI verification | **pending** (awaiting Agent 1 green-run URL + SHA) | `docs/ENGINE_PHASE3.md` |
+| Engine test count (CI, with PostGIS) | 24 passed, 0 skipped (engine SHA only, not final project count) | `.github/workflows/engine-ci.yml`, `ENGINE_PHASE3.md` |
+| Engine test count (local, no DB) | 20 passed, 4 skipped | local `pytest` run |
+| Phase 3 CI verification | **verified** — [run 36287891004](https://github.com/Abhiramcodegit/gridlock-sperry-hackathon/actions/runs/36287891004), SHA `02752cb`, 2026-09-27 | `ENGINE_PHASE3.md` (commit `2eff3d0`) |
 
 Related docs: [`README.md`](../README.md) ·
 [`AGENT_STATUS.md`](../AGENT_STATUS.md) ·

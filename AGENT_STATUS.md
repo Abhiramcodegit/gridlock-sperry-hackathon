@@ -58,13 +58,13 @@ Branch: docs/demo-flow (from base c8b5279)
 
 Latest SHA: see docs/demo-flow HEAD (recorded in the final report)
 
-Files touched: docs/DEMO_FLOW.md (new), README.md, AGENT_STATUS.md (Agent-4 section only)
+Files touched: README.md, docs/DEMO_FLOW.md, docs/DATA_LIMITATIONS.md (augmented), docs/DEPLOYMENT.md (new), AGENT_STATUS.md (Agent-4 section only)
 
-Claims awaiting verification: Phase 3 PostGIS CI verification is PENDING — docs state "Phase 3 PostGIS CI verification: pending" and will cite Agent 1's green engine-ci run URL + tested SHA once the Gate reads GREEN. The "24 passed, 0 skipped" CI figure is the expected count from docs/ENGINE_PHASE3.md and .github/workflows/engine-ci.yml, not yet confirmed against a real CI run (that confirmation is Agent 1's deliverable).
+Claims awaiting verification: none of my own. Phase 3 PostGIS CI is now cited as VERIFIED per Agent 1 — Actions run 36287891004, tested engine SHA 02752cb1edb4085c8e80a328deac637685af3def, verified 2026-09-27, 24 passed / 0 skipped (engine suite only, not the final integrated project count). Caveat carried in docs: the repo is private, so the Actions run page needs authenticated access; the result is Agent 1-attested and recorded in docs/ENGINE_PHASE3.md (verification commit 2eff3d0). I did not independently open the run (no GitHub auth on this machine).
 
-Blockers: none for docs. Cannot mark Phase 3 verified until Agent 1 supplies the green run URL + SHA.
+Blockers: none.
 
-Next step: on receiving Agent 1's green engine-ci URL + tested SHA, replace "pending" lines in README.md and docs/DEMO_FLOW.md with the cited run, then re-commit.
+Next step: hand off for Agent 5 review of this follow-up commit. Do not merge (per instruction).
 
 Last updated: 2026-09-27
 
