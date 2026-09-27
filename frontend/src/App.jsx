@@ -1,12 +1,27 @@
 // MapLibre GL JS v6 migration notes:
 // - v6 is ESM-only; default export removed. Use namespace import.
-// - The worker is bundled automatically by Vite in v6 — no manual
-//   setWorkerUrl() wiring is needed (the old CSP worker file was removed).
+// - v6 ships its render worker as a SEPARATE ESM file (maplibre-gl-worker.mjs).
+//   Vite does NOT auto-emit that worker for a namespace import, so in a
+//   PRODUCTION build `new Worker(<url>)` resolves to a path the preview/host
+//   serves as index.html (text/html) — the worker dies on the MIME check and
+//   vector tiles never decode (only the raster hillshade paints). We fix this
+//   by resolving the worker through Vite's `?worker&url` import (which emits
+//   the worker AND its maplibre-gl-shared sibling) and handing it to
+//   maplibregl.setWorkerUrl(). `?worker&url` is mandatory here — plain `?url`
+//   emits the worker without its shared sibling and fails on first import in
+//   production builds only (dev happens to work either way).
 // - Map, LngLatBounds, etc. are unchanged in call signature.
 // - See: https://maplibre.org/maplibre-gl-js/docs/guides/v5-to-v6-migration-guide/
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
+
+// Point MapLibre at the Vite-resolved worker URL so the render worker loads
+// reliably in both dev and production builds.
+if (typeof maplibregl.setWorkerUrl === 'function') {
+  maplibregl.setWorkerUrl(maplibreWorkerUrl)
+}
 
 const COLORS = { DESC: '#1f6feb', GPC: '#d97706' }
 // Candidate-review styling: amber + dashed, deliberately distinct from the

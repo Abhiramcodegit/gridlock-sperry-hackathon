@@ -60,8 +60,12 @@ vi.mock('maplibre-gl', () => {
   class LngLatBounds {
     extend() { return this }
   }
-  return { __esModule: true, Map, LngLatBounds, default: { Map, LngLatBounds } }
+  // setWorkerUrl is a no-op in tests; the real one wires the render worker.
+  const setWorkerUrl = () => {}
+  return { __esModule: true, Map, LngLatBounds, setWorkerUrl, default: { Map, LngLatBounds, setWorkerUrl } }
 })
+// The Vite `?worker&url` import has no meaning under vitest; stub it to a string.
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({ default: 'test-worker-url' }))
 
 // Mock the CSS side-effect import so it is a harmless no-op under jsdom.
 vi.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}))
