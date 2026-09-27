@@ -52,11 +52,36 @@ The integration tests cover: ingestion of proposed rows; the empty-result case
 pair does produce an opportunity), proving the empty result is data-driven, not
 a broken query.
 
-## Verification status (local, no DB available on this machine)
+## Verification via GitHub Actions CI
 
-- `pytest`: 20 passed, 4 skipped (DB integration — no local Postgres/Docker).
+Local Docker is unavailable on the dev machine (macOS 12, unsupported by current
+Docker Desktop and Homebrew), so the live PostGIS run is executed by the GitHub
+Actions workflow `.github/workflows/engine-ci.yml`: it spins up
+`postgis/postgis:16-3.4` as a service, applies `db/schema.sql` manually (service
+containers do not honor the docker-compose init-script mount), sets
+`GRIDLOCK_DATABASE_URL`, and runs `pytest -v`. A green run is the verification
+record.
+
+Expected on a green run: **24 passed, 0 skipped** (17 engine + 3 proxy-distance
++ 4 DB integration).
+
+CI runs `pytest` only. The DB integration tests call `db.find_opportunities()`
+directly against live PostGIS; CI does NOT hit the `/opportunities` HTTP endpoint
+against the database.
+
+## Verification status
+
+- `pytest` (local, no DB): 20 passed, 4 skipped (20 = 17 engine + 3
+  proxy-distance; the 4 DB integration tests skip without a database).
 - `GET /opportunities` via FastAPI TestClient (file mode): returns `[]`, HTTP 200.
 - Schema SQL contains the required constructs (ST_DWithin 40000, ST_Distance,
   ST_ShortestLine, cross-utility join, temporal overlap, approved-only filter).
-- **NOT YET RUN against a live PostGIS instance** — the 4 integration tests must
-  be executed in a Docker-capable environment to complete Phase 3 verification.
+- Live PostGIS run: pending GitHub Actions result. Once green, commit the
+  confirmed verification line here (template below).
+
+<!--
+Phase 3 PostGIS integration verified via GitHub Actions: pytest 24 passed,
+0 skipped (20 unit/proxy-distance + 4 DB integration against
+postgis/postgis:16-3.4). db.find_opportunities() -> [] against live PostGIS.
+Tested commit: <SHA>. CI run: <URL>. Verified: <YYYY-MM-DD>.
+-->
