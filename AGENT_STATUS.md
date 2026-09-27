@@ -60,13 +60,14 @@ Status: NOT STARTED
 
 ### Agent 5 — Main QA
 
-Status: IN PROGRESS (QA records now on branch qa/main-review; read-only reviews only; no pushes to backend/geospatial-engine)
-Agent 1 verdict+SHA: no verdict — Agent 1 BLOCKED at 4e612fa (awaiting human-pasted engine-ci run URL + pytest summary); not READY FOR REVIEW
-Agent 2 verdict+SHA: NOT STARTED
-Agent 3 verdict+SHA: NOT STARTED
-Agent 4 verdict+SHA: NOT STARTED
+Status: IN PROGRESS (QA records on qa/main-review; read-only reviews; no pushes to feature branches)
+Agent 1 verdict+SHA: PASS (run-attested) @ 2eff3d0 — caveat: private repo, could not open Actions run 36287891004 via API; corroborated in-repo (ancestry, workflow, tests, count). Human glance at run page recommended.
+Agent 2 verdict+SHA: PASS WITH NOTES @ 4b83d4c (product) — notes: thin responsive (@media x1), no reduced-motion, map lacks aria/role. Non-blocking.
+Agent 3 verdict+SHA: not reviewed — awaiting new SHA (per orchestrator: do not review Agent 3 until its SHA arrives)
+Agent 4 verdict+SHA: PASS WITH NOTES @ 93c83a7 — note: README "24 passed (CI)" badge/bullet premature at that SHA (no run URL then); follow-up doc update to cite run 36287891004 now that Phase 3 is green.
 Open FAILs: none
-Recommended merge order: 1 (engine/CI) → 2 (frontend) → 3 (frontend tests) → 4 (docs); none ready to recommend yet
+Recommended merge order: 1 Agent 1 (2eff3d0) → 2 Agent 2 (4b83d4c) → 4 Agent 4 (93c83a7, with post-merge doc follow-up); Agent 3 pending its SHA
+Ready to recommend for merge (human authorizes): 2eff3d0, 4b83d4c, 93c83a7
 Last updated: 2026-09-27
 
 <!-- AGENT-5:END -->
