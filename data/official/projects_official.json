@@ -16,7 +16,7 @@
     ],
     "in_service_date": "2024-12-31",
     "geometry_confidence": "endpoint_only",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "Point",
       "coordinates": [
@@ -42,7 +42,7 @@
     ],
     "in_service_date": "2024-12-31",
     "geometry_confidence": "endpoint_only",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "Point",
       "coordinates": [
@@ -71,7 +71,7 @@
     ],
     "in_service_date": "2025-12-31",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [
@@ -103,7 +103,7 @@
     ],
     "in_service_date": "2023-12-31",
     "geometry_confidence": "endpoint_only",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "Point",
       "coordinates": [
@@ -132,7 +132,7 @@
     ],
     "in_service_date": "2025-06-01",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [
@@ -167,7 +167,7 @@
     ],
     "in_service_date": "2033-06-01",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [
@@ -199,7 +199,7 @@
     ],
     "in_service_date": "2026-06-01",
     "geometry_confidence": "endpoint_only",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "Point",
       "coordinates": [
@@ -228,7 +228,7 @@
     ],
     "in_service_date": "2027-06-01",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [
@@ -263,7 +263,7 @@
     ],
     "in_service_date": "2025-05-01",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [
@@ -298,7 +298,7 @@
     ],
     "in_service_date": "2025-06-01",
     "geometry_confidence": "two_endpoints",
-    "source_reference": "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects",
+    "source_reference": "data/official/source/Projects_Overlaps.xlsx#projects",
     "geometry": {
       "type": "LineString",
       "coordinates": [

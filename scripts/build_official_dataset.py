@@ -27,9 +27,14 @@ from datetime import date, datetime
 import openpyxl
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-XLSX = ROOT / "Sperry-Tech-Challenge" / "Projects_Overlaps.xlsx"
+# Committed source of truth (tracked in git so the dataset rebuilds from a clean
+# checkout). Falls back to the original challenge drop location only if the
+# committed copy is absent; the committed copy is authoritative.
+_XLSX_COMMITTED = ROOT / "data" / "official" / "source" / "Projects_Overlaps.xlsx"
+_XLSX_LEGACY = ROOT / "Sperry-Tech-Challenge" / "Projects_Overlaps.xlsx"
+XLSX = _XLSX_COMMITTED if _XLSX_COMMITTED.exists() else _XLSX_LEGACY
 OUT_DIR = ROOT / "data" / "official"
-SOURCE_REFERENCE = "Sperry-Tech-Challenge/Projects_Overlaps.xlsx#projects"
+SOURCE_REFERENCE = "data/official/source/Projects_Overlaps.xlsx#projects"
 
 
 def _num(v):

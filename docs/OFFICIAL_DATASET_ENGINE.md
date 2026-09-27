@@ -5,9 +5,16 @@ and the cross-utility overlap engine that ranks coordination opportunities.
 
 ## Source of truth
 
-`Sperry-Tech-Challenge/Projects_Overlaps.xlsx` (sheet `projects`). Every coordinate
-in the normalized dataset is copied verbatim from that sheet. No coordinate is
-invented, and no Overpass/Nominatim call is made at build or run time.
+`data/official/source/Projects_Overlaps.xlsx` (sheet `projects`) — the challenge
+spreadsheet, committed to the repository so the dataset can be rebuilt from a
+clean checkout. Every coordinate in the normalized dataset is copied verbatim
+from that sheet. No coordinate is invented, and no Overpass/Nominatim call is
+made at build or run time.
+
+The build reads this committed copy (`data/official/source/Projects_Overlaps.xlsx`).
+For backward compatibility it falls back to the original challenge drop location
+`Sperry-Tech-Challenge/Projects_Overlaps.xlsx` only when the committed copy is
+absent; the committed copy is authoritative.
 
 The sheet's `overlaps` sheet is used **only** as a regression oracle in tests
 (`backend/tests/test_official_engine.py`), never as an engine input.
@@ -50,7 +57,7 @@ The sheet's `overlaps` sheet is used **only** as a regression oracle in tests
 - Compares every DESC project to every GPC project — 5 × 5 = 25 pairs.
 - **Primary metric:** closest-point distance between full geometries
   (projected to UTM 17N / EPSG:32617), never center-to-center.
-- **Inclusion gate:** distance < 40 km (25 mi).
+- **Inclusion gate:** distance < 40 km (≈24.85 mi).
 - **Secondary field:** absolute in-service date gap in days.
 - **Coordination tier** (by closest-point distance):
   - touching/crossing → outage timing + crossing-structure coordination
@@ -100,7 +107,11 @@ of two line segments are at or nearer than their midpoints. The largest single
 divergence is the **DESC_2 + GPC_1** pair, which computes to 0 m because
 `DESC_2`'s only known endpoint (Thurmond Sub, 33.660127, −82.195931) is the exact
 same coordinate as `GPC_1`'s endpoint B (THURMOND DAM #5, 33.660127, −82.195931).
-The two projects share a physical endpoint — a genuine touch, not an artifact.
+Both filings name an endpoint that resolves to the same location. GridLock cannot
+confirm from public sources whether that is one shared site or two separate
+facilities nearby. Identical coordinates prove both filings published the same
+point, not that it is one facility; the mixed casing (Thurmond Sub vs
+THURMOND DAM #5) is evidence of two independent filings.
 
 ## Known limitations
 
@@ -119,3 +130,17 @@ The two projects share a physical endpoint — a genuine touch, not an artifact.
 - **Projection.** Distances use UTM 17N (EPSG:32617), accurate for the SC/GA
   border region; pairs far outside that zone would carry more projection error
   (not a concern for the qualifying set).
+
+## Reproducibility
+
+The source spreadsheet is committed at `data/official/source/Projects_Overlaps.xlsx`
+(SHA-256 `fe01df4ed0691d55fd565784a7510ddfe4682316ff63fb70b963b934c5974f24`), so
+the dataset rebuilds from a clean checkout:
+
+```
+python scripts/build_official_dataset.py
+```
+
+This regenerates `data/official/projects_official.json` and `.geojson`
+deterministically (byte-identical across runs). The committed spreadsheet is the
+authoritative input; do not edit the generated files by hand.
