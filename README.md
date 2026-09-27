@@ -11,6 +11,76 @@ GridLock finds opportunities for electric utilities to coordinate transmission c
 
 ---
 
+## How to Run
+
+The application uses two local processes: a backend API (port 8000) and a frontend website (port 5173).
+
+### First-Time Setup
+
+Run these commands once after cloning:
+
+```bash
+cd ~/Projects/gridlock-sperry-hackathon
+python3 -m venv .venv
+pip install --prefer-binary -r backend/requirements.txt
+cd frontend && npm ci && cd ..
+```
+
+**Terminal 1 — backend:**
+```bash
+cd ~/Projects/gridlock-sperry-hackathon/backend
+../.venv/bin/python -m uvicorn gridlock.api:app --port 8000
+```
+
+**Terminal 2 — frontend:**
+```bash
+cd ~/Projects/gridlock-sperry-hackathon/frontend
+npm run dev
+```
+
+Open **http://localhost:5173**. When the backend is running, the sidebar shows 6 reference candidate pairs (e.g. DESC\_2 ↔ GPC\_1) and no offline banner. If you see "Offline fallback: static data", the backend is not running.
+
+---
+
+### Every Time After Setup
+
+No activation or reinstall needed.
+
+**Terminal 1 — backend:**
+```bash
+cd ~/Projects/gridlock-sperry-hackathon/backend
+../.venv/bin/python -m uvicorn gridlock.api:app --port 8000
+```
+
+**Terminal 2 — frontend:**
+```bash
+cd ~/Projects/gridlock-sperry-hackathon/frontend
+npm run dev
+```
+
+Open **http://localhost:5173**. Press `Ctrl+C` in each terminal to stop.
+
+---
+
+### Troubleshooting
+
+**`zsh: command not found: python`** — use `python3` only for the one-time venv creation step. After that, always call `.venv/bin/python` directly as shown above.
+
+**`No module named uvicorn`** — deps are not installed in the venv. Run:
+```bash
+pip install --prefer-binary -r ~/Projects/gridlock-sperry-hackathon/backend/requirements.txt
+```
+
+**`address already in use` (port 8000)** — an old backend is still running. Stop it:
+```bash
+lsof -ti :8000 | xargs kill
+```
+Then restart the backend.
+
+**`/projects` returns `{"type":"FeatureCollection","features":[]}`** — a stale backend from an old session is running. Stop it with the command above and restart from this repo's `backend/` directory.
+
+---
+
 ## The Problem
 
 When two utilities plan transmission lines within kilometres of each other, on overlapping schedules, neither usually knows. Each utility hires its own contractors, pulls its own permits, and mobilizes its own crews — even when a shared right-of-way or a single permit would cover both. Industry estimates put wasted coordination costs in the tens of millions of dollars per avoided duplication. No public tool surfaces these opportunities automatically.
@@ -130,68 +200,12 @@ gridlock-sperry-hackathon/
 │   ├── DEMO_FLOW.md                     ← 2–3 minute demo script
 │   ├── ENGINE_PHASE3.md                 ← deterministic PostGIS engine + CI verification
 │   ├── PROXY_DISTANCE_RESULT.md         ← GPC-004 ↔ DESC-003 = 116.993 km (honest negative)
-│   ├── DATA_LIMITATIONS.md              ← what the dataset does/doesn’t contain
+│   ├── DATA_LIMITATIONS.md              ← what the dataset does/doesn't contain
 │   ├── DECISION_LOG.md                  ← architectural decisions + rationale
 │   ├── SECURITY_AUDIT.md                ← npm audit history + CVE decisions
 │   └── ...                              ← additional audit/status docs
 └── .github/workflows/engine-ci.yml      ← PostGIS integration tests on GitHub Actions
 ```
-
----
-
-## Quickstart
-
-### Prerequisites
-- Python 3.11, 3.12, or 3.13
-- Node 18+ (22.x recommended)
-- Docker Desktop (only for the PostGIS mode)
-
-```bash
-git clone https://github.com/Abhiramcodegit/gridlock-sperry-hackathon
-cd gridlock-sperry-hackathon
-```
-
-### 1. Frontend dev server
-```bash
-cd frontend
-npm install
-npm audit                # expect 0 high / 0 critical
-npm run dev              # http://localhost:5173
-```
-
-### 2. API — file mode (no database)
-Uses the file-based deterministic engine. Reads
-`data/approved/projects_approved.geojson`, which is empty, so `/opportunities`
-returns `[]` — the correct answer until data is approved.
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install --prefer-binary -r backend/requirements.txt
-cd backend
-pytest                                   # 20 passed, 4 skipped (DB tests skip without a database)
-uvicorn gridlock.api:app --reload        # http://localhost:8000
-# GET /health        -> {"ok": true, "backend": "file"}
-# GET /opportunities -> []
-```
-
-### 3. API + PostGIS via docker compose
-Brings up `postgis/postgis:16-3.4` (applies `db/schema.sql`) and the API. The
-API ingests `data/normalized/projects_proposed.csv` once at startup, then serves
-the PostGIS-backed `/opportunities` query.
-```bash
-cp .env.example .env      # set POSTGRES_PASSWORD
-docker compose up --build
-# db  -> localhost:5432
-# api -> localhost:8000  (GET /health -> {"ok": true, "backend": "postgis"})
-```
-
-To run the PostGIS integration tests directly (matches CI):
-```bash
-docker compose up -d db
-export GRIDLOCK_DATABASE_URL=postgresql://postgres:$POSTGRES_PASSWORD@localhost:5432/gridlock
-cd backend && pytest                     # 24 passed, 0 skipped (with a live database)
-```
-
-Full setup guide with troubleshooting: [`docs/SETUP.md`](docs/SETUP.md)
 
 ---
 
@@ -290,7 +304,7 @@ Full workflow spec: [`project-docs/WORKFLOW.md`](project-docs/WORKFLOW.md)
 - **[`AGENT_STATUS.md`](AGENT_STATUS.md)** — live multi-agent status board.
 - [`docs/ENGINE_PHASE3.md`](docs/ENGINE_PHASE3.md) — deterministic PostGIS engine + CI verification.
 - [`docs/PROXY_DISTANCE_RESULT.md`](docs/PROXY_DISTANCE_RESULT.md) — the 116.993 km honest negative.
-- [`docs/DATA_LIMITATIONS.md`](docs/DATA_LIMITATIONS.md) — what the dataset does and doesn’t contain.
+- [`docs/DATA_LIMITATIONS.md`](docs/DATA_LIMITATIONS.md) — what the dataset does and doesn't contain.
 - [`docs/SETUP.md`](docs/SETUP.md) — step-by-step local setup.
 
 ## Security
