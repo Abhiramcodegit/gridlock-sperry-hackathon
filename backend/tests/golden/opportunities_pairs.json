@@ -1,0 +1,16 @@
+{
+  "status": "UNVERIFIED — derived from approved demo narrative cluster assignments; confirm against data/official/projects_official.json before relying on it",
+  "route": "TODO(Rev2.3): reference-pairs route not yet defined; these pairs do NOT belong to /opportunities",
+  "pair_fields": ["desc_project_id", "gpc_project_id"],
+  "gate_m": 40000.0,
+  "gate_exclusive": true,
+  "expected_project_count": 10,
+  "pairs_unordered": [
+    ["DESC_1", "GPC_1"],
+    ["DESC_2", "GPC_1"],
+    ["DESC_3", "GPC_2"],
+    ["DESC_3", "GPC_3"],
+    ["DESC_5", "GPC_2"],
+    ["DESC_5", "GPC_3"]
+  ]
+}
